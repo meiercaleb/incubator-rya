@@ -30,6 +30,7 @@ import mvm.rya.accumulo.AccumuloRdfConfiguration;
 import mvm.rya.api.RdfCloudTripleStoreConfiguration;
 import mvm.rya.api.persist.RyaDAOException;
 import mvm.rya.api.resolver.RyaTypeResolverException;
+import mvm.rya.api.utils.NullableStatementImpl;
 import mvm.rya.indexing.accumulo.ConfigUtils;
 import mvm.rya.indexing.external.PcjIntegrationTestingUtil;
 import mvm.rya.indexing.pcj.matching.QueryVariableNormalizer;
@@ -185,6 +186,75 @@ public class AccumuloIndexSetTest {
 				alice, bob, charlie);
 		Assert.assertEquals(expectedResults, fetchedResults);
 	}
+
+
+
+	/**
+	 * TODO doc
+	 *
+	 * @throws QueryEvaluationException
+	 * @throws SailException
+	 * @throws MalformedQueryException
+	 * @throws AccumuloSecurityException
+	 * @throws AccumuloException
+	 */
+	@Test
+	public void accumuloIndexSetTestWithContext()
+			throws RepositoryException, PcjException, TableNotFoundException,
+			RyaTypeResolverException, MalformedQueryException, SailException,
+			QueryEvaluationException, AccumuloException, AccumuloSecurityException {
+		// Load some Triples into Rya.
+		final Set<Statement> triples = new HashSet<>();
+		triples.add(new NullableStatementImpl(new URIImpl("http://Alice"), new URIImpl(
+				"http://hasAge"), new NumericLiteralImpl(14, XMLSchema.INTEGER), new URIImpl("http://context")));
+		triples.add(new NullableStatementImpl(new URIImpl("http://Alice"), new URIImpl(
+				"http://playsSport"), new LiteralImpl("Soccer"), new URIImpl("http://context")));
+		triples.add(new NullableStatementImpl(new URIImpl("http://Bob"), new URIImpl(
+				"http://hasAge"), new NumericLiteralImpl(16, XMLSchema.INTEGER), new URIImpl("http://context")));
+		triples.add(new NullableStatementImpl(new URIImpl("http://Bob"), new URIImpl(
+				"http://playsSport"), new LiteralImpl("Soccer"), new URIImpl("http://context")));
+
+		for (final Statement triple : triples) {
+			ryaConn.add(triple);
+		}
+
+		// Create a PCJ table will include those triples in its results.
+		final String sparql = "SELECT ?name ?age " + "{"
+				+ "GRAPH <http://context> {?name <http://hasAge> ?age."
+				+ "?name <http://playsSport> \"Soccer\" " + "} }";
+
+		final String pcjTableName = new PcjTableNameFactory().makeTableName(
+				prefix, "testPcj");
+		// Create and populate the PCJ table.
+		PcjIntegrationTestingUtil.createAndPopulatePcj(ryaConn, accumuloConn,
+				pcjTableName, sparql, new String[] { "name", "age" },
+				Optional.<PcjVarOrderFactory> absent());
+
+		final AccumuloIndexSet ais = new AccumuloIndexSet(conf, pcjTableName);
+
+		final CloseableIteration<BindingSet, QueryEvaluationException> results = ais
+				.evaluate(new QueryBindingSet());
+		final Set<BindingSet> fetchedResults = new HashSet<BindingSet>();
+		while (results.hasNext()) {
+			fetchedResults.add(results.next());
+		}
+		// Ensure the expected results match those that were stored.
+		final QueryBindingSet alice = new QueryBindingSet();
+		alice.addBinding("name", new URIImpl("http://Alice"));
+		alice.addBinding("age", new NumericLiteralImpl(14, XMLSchema.INTEGER));
+
+		final QueryBindingSet bob = new QueryBindingSet();
+		bob.addBinding("name", new URIImpl("http://Bob"));
+		bob.addBinding("age", new NumericLiteralImpl(16, XMLSchema.INTEGER));
+
+		final Set<BindingSet> expectedResults = Sets.<BindingSet> newHashSet(alice, bob);
+		Assert.assertEquals(expectedResults, fetchedResults);
+	}
+
+
+
+
+
 
 	/**
 	 * TODO doc

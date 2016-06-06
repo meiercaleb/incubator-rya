@@ -121,6 +121,7 @@ public class AccumuloRyaDetailsRepositoryIT {
             .setFreeTextDetails( new FreeTextIndexDetails(true) )
             .setPCJIndexDetails(
                     PCJIndexDetails.builder()
+                        .setEnabled(true)
                         .setFluoDetails( new FluoDetails("test_instance_rya_pcj_updater") )
                         .addPCJDetails(
                                 PCJDetails.builder()
@@ -167,6 +168,7 @@ public class AccumuloRyaDetailsRepositoryIT {
             .setFreeTextDetails( new FreeTextIndexDetails(true) )
             .setPCJIndexDetails(
                     PCJIndexDetails.builder()
+                        .setEnabled(true)
                         .setFluoDetails( new FluoDetails("test_instance_rya_pcj_updater") )
                         .addPCJDetails(
                                 PCJDetails.builder()
@@ -221,6 +223,7 @@ public class AccumuloRyaDetailsRepositoryIT {
             .setFreeTextDetails( new FreeTextIndexDetails(true) )
             .setPCJIndexDetails(
                     PCJIndexDetails.builder()
+                        .setEnabled(true)
                         .setFluoDetails( new FluoDetails("test_instance_rya_pcj_updater") )
                         .addPCJDetails(
                                 PCJDetails.builder()
@@ -275,6 +278,7 @@ public class AccumuloRyaDetailsRepositoryIT {
             .setFreeTextDetails( new FreeTextIndexDetails(true) )
             .setPCJIndexDetails(
                     PCJIndexDetails.builder()
+                        .setEnabled(true)
                         .setFluoDetails( new FluoDetails("test_instance_rya_pcj_updater") )
                         .addPCJDetails(
                                 PCJDetails.builder()
@@ -327,6 +331,7 @@ public class AccumuloRyaDetailsRepositoryIT {
             .setFreeTextDetails( new FreeTextIndexDetails(true) )
             .setPCJIndexDetails(
                     PCJIndexDetails.builder()
+                        .setEnabled(true)
                         .setFluoDetails( new FluoDetails("test_instance_rya_pcj_updater") )
                         .addPCJDetails(
                                 PCJDetails.builder()

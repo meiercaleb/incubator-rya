@@ -23,6 +23,13 @@ import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.FI
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.JOIN_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.QUERY_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.SP_PREFIX;
+import io.fluo.api.data.Column;
+
+import java.util.List;
+
+import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
+import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns.QueryNodeMetadataColumns;
+import org.openrdf.query.BindingSet;
 
 import com.google.common.base.Optional;
 
@@ -30,10 +37,41 @@ import com.google.common.base.Optional;
  * Represents the different types of nodes that a Query may have.
  */
 public enum NodeType {
-    FILTER,
-    JOIN,
-    STATEMENT_PATTERN,
-    QUERY;
+    FILTER (QueryNodeMetadataColumns.FILTER_COLUMNS, FluoQueryColumns.FILTER_BINDING_SET),
+    JOIN(QueryNodeMetadataColumns.JOIN_COLUMNS, FluoQueryColumns.JOIN_BINDING_SET),
+    STATEMENT_PATTERN(QueryNodeMetadataColumns.STATEMENTPATTERN_COLUMNS, FluoQueryColumns.STATEMENT_PATTERN_BINDING_SET),
+    QUERY(QueryNodeMetadataColumns.QUERY_COLUMNS, FluoQueryColumns.QUERY_BINDING_SET);
+
+
+    //Metadata Columns associated with given NodeType
+    private QueryNodeMetadataColumns columns;
+    //Column where BindingSet results are stored for given NodeType
+    private Column bsColumn;
+
+    NodeType(QueryNodeMetadataColumns columns, Column bsColumn) {
+    	this.columns = columns;
+    	this.bsColumn = bsColumn;
+    }
+
+
+    /**
+     *
+     * @return - Metadata {@link Column}s associated with {@link NodeType}
+     */
+    public List<Column> getMetaDataColumns() {
+    	return columns.columns();
+    }
+
+
+    /**
+     *
+     * @return - {@link Column} used to store {@link BindingSet}s.
+     */
+    public Column getBsColumn() {
+    	return bsColumn;
+    }
+
+
 
     /**
      * Get the {@link NodeType} of a node based on its Node ID.
@@ -60,3 +98,5 @@ public enum NodeType {
         return Optional.fromNullable(type);
     }
 }
+
+

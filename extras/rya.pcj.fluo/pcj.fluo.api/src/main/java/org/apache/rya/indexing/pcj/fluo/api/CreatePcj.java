@@ -22,6 +22,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.requireNonNull;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.NODEID_BS_DELIM;
+import info.aduna.iteration.CloseableIteration;
+import io.fluo.api.client.FluoClient;
+import io.fluo.api.types.TypedTransaction;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -52,10 +55,6 @@ import org.openrdf.query.parser.sparql.SPARQLParser;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
-
-import info.aduna.iteration.CloseableIteration;
-import io.fluo.api.client.FluoClient;
-import io.fluo.api.types.TypedTransaction;
 
 /**
  * Sets up a new Pre Computed Join (PCJ) in Fluo from a SPARQL query.
@@ -157,6 +156,7 @@ public class CreatePcj {
             // The results of the query are eventually exported to an instance of Rya, so store the Rya ID for the PCJ.
             final String queryId = fluoQuery.getQueryMetadata().getNodeId();
             tx.mutate().row(queryId).col(FluoQueryColumns.RYA_PCJ_ID).set(pcjId);
+            tx.mutate().row(pcjId).col(FluoQueryColumns.PCJ_ID_QUERY_ID).set(queryId);
 
             // Flush the changes to Fluo.
             tx.commit();

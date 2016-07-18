@@ -1,6 +1,4 @@
-package mvm.rya.console;
-
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -8,9 +6,9 @@ package mvm.rya.console;
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,9 +16,7 @@ package mvm.rya.console;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-
-import info.aduna.iteration.CloseableIteration;
+package mvm.rya.console;
 
 import java.io.FileInputStream;
 import java.io.StringReader;
@@ -28,17 +24,6 @@ import java.util.Formatter;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import mvm.rya.accumulo.AccumuloRdfConfiguration;
-import mvm.rya.accumulo.AccumuloRyaDAO;
-import mvm.rya.api.RdfCloudTripleStoreConfiguration;
-import mvm.rya.api.domain.RyaStatement;
-import mvm.rya.api.domain.RyaURI;
-import mvm.rya.api.persist.RyaDAO;
-import mvm.rya.api.persist.RyaDAOException;
-import mvm.rya.api.persist.query.RyaQueryEngine;
-import mvm.rya.api.resolver.RdfToRyaConversions;
-import mvm.rya.api.resolver.RyaContext;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -54,6 +39,18 @@ import org.springframework.shell.core.annotation.CliCommand;
 import org.springframework.shell.core.annotation.CliOption;
 import org.springframework.stereotype.Component;
 
+import info.aduna.iteration.CloseableIteration;
+import mvm.rya.accumulo.AccumuloRdfConfiguration;
+import mvm.rya.accumulo.AccumuloRyaDAO;
+import mvm.rya.api.RdfCloudTripleStoreConfiguration;
+import mvm.rya.api.domain.RyaStatement;
+import mvm.rya.api.domain.RyaURI;
+import mvm.rya.api.persist.RyaDAO;
+import mvm.rya.api.persist.RyaDAOException;
+import mvm.rya.api.persist.query.RyaQueryEngine;
+import mvm.rya.api.resolver.RdfToRyaConversions;
+import mvm.rya.api.resolver.RyaContext;
+
 @Component
 public class RyaConsoleCommands implements CommandMarker {
 
@@ -61,7 +58,7 @@ public class RyaConsoleCommands implements CommandMarker {
 
     protected final Logger LOG = Logger.getLogger(getClass().getName());
 
-    private RyaContext ryaContext = RyaContext.getInstance();
+    private final RyaContext ryaContext = RyaContext.getInstance();
     private RyaDAO ryaDAO;
     private RDFParser ntrips_parser = null;
 
@@ -69,28 +66,33 @@ public class RyaConsoleCommands implements CommandMarker {
         ntrips_parser = N_TRIPLES_PARSER_FACTORY.getParser();
         ntrips_parser.setRDFHandler(new RDFHandler() {
 
+            @Override
             public void startRDF() throws RDFHandlerException {
 
             }
 
+            @Override
             public void endRDF() throws RDFHandlerException {
 
             }
 
-            public void handleNamespace(String s, String s1) throws RDFHandlerException {
+            @Override
+            public void handleNamespace(final String s, final String s1) throws RDFHandlerException {
 
             }
 
-            public void handleStatement(Statement statement) throws RDFHandlerException {
+            @Override
+            public void handleStatement(final Statement statement) throws RDFHandlerException {
                 try {
-                    RyaStatement ryaStatement = RdfToRyaConversions.convertStatement(statement);
+                    final RyaStatement ryaStatement = RdfToRyaConversions.convertStatement(statement);
                     ryaDAO.add(ryaStatement);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     throw new RDFHandlerException(e);
                 }
             }
 
-            public void handleComment(String s) throws RDFHandlerException {
+            @Override
+            public void handleComment(final String s) throws RDFHandlerException {
 
             }
         });
@@ -123,30 +125,30 @@ public class RyaConsoleCommands implements CommandMarker {
             @CliOption(key = {"maxResults"}, mandatory = false, help = "Maximum Number of Results", unspecifiedDefaultValue = "100") final String maxResults
     ) {
         try {
-            RdfCloudTripleStoreConfiguration conf = ryaDAO.getConf().clone();
+            final RdfCloudTripleStoreConfiguration conf = ryaDAO.getConf().clone();
             if (maxResults != null) {
                 conf.setLimit(Long.parseLong(maxResults));
             }
-            RyaQueryEngine queryEngine = ryaDAO.getQueryEngine();
-            CloseableIteration<RyaStatement, RyaDAOException> query =
+            final RyaQueryEngine queryEngine = ryaDAO.getQueryEngine();
+            final CloseableIteration<RyaStatement, RyaDAOException> query =
                     queryEngine.query(new RyaStatement(
                             (subject != null) ? (new RyaURI(subject)) : null,
                             (predicate != null) ? (new RyaURI(predicate)) : null,
                             (object != null) ? (new RyaURI(object)) : null,
                             (context != null) ? (new RyaURI(context)) : null), conf);
-            StringBuilder sb = new StringBuilder();
-            Formatter formatter = new Formatter(sb, Locale.US);
-            String format = "%-40s %-40s %-40s %-40s\n";
+            final StringBuilder sb = new StringBuilder();
+            final Formatter formatter = new Formatter(sb, Locale.US);
+            final String format = "%-40s %-40s %-40s %-40s\n";
             formatter.format(format, "Subject", "Predicate",
                     "Object", "Context");
             while (query.hasNext()) {
-                RyaStatement next = query.next();
+                final RyaStatement next = query.next();
                 formatter.format(format, next.getSubject().getData(), next.getPredicate().getData(),
                         next.getObject().getData(), (next.getContext() != null) ? (next.getContext().getData()) : (null));
                 sb.append("\n");
             }
             return sb.toString();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.log(Level.SEVERE, "", e);
         }
         return "";
@@ -160,7 +162,7 @@ public class RyaConsoleCommands implements CommandMarker {
         //diff types of urls
         try {
             ntrips_parser.parse(new FileInputStream(file), "");
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.log(Level.SEVERE, "", e);
         }
     }
@@ -170,7 +172,7 @@ public class RyaConsoleCommands implements CommandMarker {
             @CliOption(key = {"", "statement"}, mandatory = true, help = "Statement in NTriples format") final String statement) {
         try {
             ntrips_parser.parse(new StringReader(statement), "");
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.log(Level.SEVERE, "", e);
         }
     }
@@ -185,7 +187,7 @@ public class RyaConsoleCommands implements CommandMarker {
         try {
             //using Cloudbase
             Connector connector = null;
-            AccumuloRyaDAO cryaDao = new AccumuloRyaDAO();
+            final AccumuloRyaDAO cryaDao = new AccumuloRyaDAO();
             if ("mock".equals(zk)) {
                 //mock instance
                 connector = new MockInstance(instance).getConnector(user, pwd);
@@ -194,13 +196,13 @@ public class RyaConsoleCommands implements CommandMarker {
             }
 
             cryaDao.setConnector(connector);
-            AccumuloRdfConfiguration configuration = new AccumuloRdfConfiguration();
+            final AccumuloRdfConfiguration configuration = new AccumuloRdfConfiguration();
             configuration.setTablePrefix(pre);
             cryaDao.setConf(configuration);
             cryaDao.init();
             this.ryaDAO = cryaDao;
             return "Connected to Accumulo";
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.log(Level.SEVERE, "", e);
         }
         return "";
@@ -214,7 +216,7 @@ public class RyaConsoleCommands implements CommandMarker {
         try {
             this.ryaDAO.destroy();
             this.ryaDAO = null;
-        } catch (RyaDAOException e) {
+        } catch (final RyaDAOException e) {
             LOG.log(Level.SEVERE, "", e);
         }
         return "";
@@ -224,7 +226,7 @@ public class RyaConsoleCommands implements CommandMarker {
         return ryaDAO;
     }
 
-    public void setRyaDAO(RyaDAO ryaDAO) {
+    public void setRyaDAO(final RyaDAO ryaDAO) {
         this.ryaDAO = ryaDAO;
     }
 }

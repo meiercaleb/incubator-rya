@@ -94,17 +94,16 @@ public class FluoQueryColumns {
    public static final Column TRIPLES = new Column("triples", "SPO");
 
    /**
-    * Stores the name of the Accumulo table the query's results will be stored.
-    * The table's structure is defined by Rya's.
+    * Stores the Rya assigned PCJ ID that the query's results reflect. This value
+    * defines where the results will be exported to.
     * </p>
     * <table border="1" style="width:100%">
     *   <tr> <th>Fluo Row</td>  <th>Fluo Column</td>  <th>Fluo Value</td> </tr>
-    *   <tr> <td>Query ID</td> <td>query:ryaExportTableName</td>
-    *        <td>The name of the Accumulo table the results will be exported to using
-    *            the Rya PCJ table structure.</td> </tr>
+    *   <tr> <td>Query ID</td> <td>query:ryaPcjId</td>
+    *        <td>Identifies which PCJ the reuslts of this query will be exported to.</td> </tr>
     * </table>
     */
-   public static final Column QUERY_RYA_EXPORT_TABLE_NAME = new Column("query", "ryaExportTableName");
+   public static final Column RYA_PCJ_ID = new Column("query", "ryaPcjId");
 
 
    // Sparql to Query ID used to list all queries that are in the system.

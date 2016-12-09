@@ -1,5 +1,3 @@
-package org.apache.rya.accumulo;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -8,9 +6,9 @@ package org.apache.rya.accumulo;
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,24 +16,24 @@ package org.apache.rya.accumulo;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.rya.accumulo;
 
-
-
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.apache.rya.accumulo.experimental.AccumuloIndexer;
-import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.rya.accumulo.experimental.AccumuloIndexer;
+import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
 
 /**
  * Created by IntelliJ IDEA.
@@ -68,10 +66,88 @@ public class AccumuloRdfConfiguration extends RdfCloudTripleStoreConfiguration {
         super(other);
     }
 
+    public AccumuloRdfConfigurationBuilder getBuilder() {
+    	return new AccumuloRdfConfigurationBuilder();
+    }
+    
+	/**
+	 * Creates an AccumuloRdfConfiguration object from a Properties file.  This method assumes
+	 * that all values in the Properties file are Strings and that the Properties file uses the keys below.
+	 * See accumulo/rya/src/test/resources/properties/rya.properties for an example.
+	 * <br>
+	 * <ul>
+	 * <li>"accumulo.auths" - String of Accumulo authorizations. Default is empty String.
+	 * <li>"accumulo.visibilities" - String of Accumulo visibilities assigned to ingested triples.
+	 * <li>"accumulo.instance" - Accumulo instance name (required)
+	 * <li>"accumulo.user" - Accumulo user (required)
+	 * <li>"accumulo.password" - Accumulo password (required)
+	 * <li>"accumulo.rya.prefix" - Prefix for Accumulo backed Rya instance.  Default is "rya_"
+     * <li>"accumulo.zookeepers" - Zookeepers for underlying Accumulo instance (required if not using Mock)
+     * <li>"use.mock" - Use a MockAccumulo instance as back-end for Rya instance.  Default is false.
+     * <li>"use.prefix.hashing" - Use prefix hashing for triples.  Helps avoid hot-spotting.  Default is false.
+     * <li>"use.count.stats" - Use triple pattern cardinalities for query optimization.   Default is false.
+     * <li>"use.join.selectivity" - Use join selectivity for query optimization.  Default is false.
+     * <li>"use.display.plan" - Display query plan during evaluation.  Useful for debugging.   Default is true.
+     * <li>"use.inference" - Use backward chaining inference during query evaluation.   Default is false.
+     * </ul>
+	 * <br>
+	 * @param props - Properties file containing Accumulo specific configuration parameters
+	 * @return AccumumuloRdfConfiguration with properties set
+	 */
+    
+    public static AccumuloRdfConfiguration fromProperties(Properties props) {
+    	return AccumuloRdfConfigurationBuilder.fromProperties(props).build();
+    }
+    
     @Override
     public AccumuloRdfConfiguration clone() {
         return new AccumuloRdfConfiguration(this);
     }
+    
+    public void setAccumuloUser(String user) {
+    	Preconditions.checkNotNull(user);
+    	set("sc.cloudbase.username", user);
+    }
+    
+    public String getAccumuloUser(){
+    	return get("sc.cloudbase.username"); 
+    }
+    
+    public void setAccumuloPassword(String password) {
+    	Preconditions.checkNotNull(password);
+    	set("sc.cloudbase.password", password);
+    }
+    
+    public String getAccumuloPassword() {
+    	return get("sc.cloudbase.password");
+    }
+    
+    public void setAccumuloZookeepers(String zookeepers) {
+    	Preconditions.checkNotNull(zookeepers);
+    	set("sc.cloudbase.zookeepers", zookeepers);
+    }
+    
+    public String getAccumuloZookeepers() {
+    	return get("sc.cloudbase.zookeepers");
+    }
+    
+    public void setAccumuloInstance(String instance) {
+    	Preconditions.checkNotNull(instance);
+    	set("sc.cloudbase.instancename", instance);
+    }
+    
+    public String getAccumuloInstance() {
+    	return get("sc.cloudbase.instancename");
+    }
+    
+    public void setUseMockAccumulo(boolean useMock) {
+    	setBoolean(".useMockInstance", useMock);
+    }
+    
+    public boolean getUseMockAccumulo() {
+    	return getBoolean(".useMockInstance", false);
+    }
+    
 
     public Authorizations getAuthorizations() {
         String[] auths = getAuths();

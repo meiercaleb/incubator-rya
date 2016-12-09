@@ -61,6 +61,7 @@ import org.apache.rya.indexing.accumulo.freetext.Tokenizer;
 import org.apache.rya.indexing.accumulo.temporal.AccumuloTemporalIndexer;
 import org.apache.rya.indexing.external.PrecomputedJoinIndexer;
 import org.apache.rya.indexing.mongodb.freetext.MongoFreeTextIndexer;
+import org.apache.rya.indexing.mongodb.temporal.MongoTemporalIndexer;
 import org.apache.rya.indexing.pcj.matching.PCJOptimizer;
 
 /**
@@ -72,13 +73,11 @@ import org.apache.rya.indexing.pcj.matching.PCJOptimizer;
 public class ConfigUtils {
     private static final Logger logger = Logger.getLogger(ConfigUtils.class);
 
-    public static final String CLOUDBASE_TBL_PREFIX = "sc.cloudbase.tableprefix";
-    public static final String CLOUDBASE_AUTHS = "sc.cloudbase.authorizations";
     public static final String CLOUDBASE_INSTANCE = "sc.cloudbase.instancename";
     public static final String CLOUDBASE_ZOOKEEPERS = "sc.cloudbase.zookeepers";
     public static final String CLOUDBASE_USER = "sc.cloudbase.username";
     public static final String CLOUDBASE_PASSWORD = "sc.cloudbase.password";
-
+    public static final String CLOUDBASE_AUTHS = RdfCloudTripleStoreConfiguration.CONF_QUERY_AUTH;
     public static final String CLOUDBASE_WRITER_MAX_WRITE_THREADS = "sc.cloudbase.writer.maxwritethreads";
     public static final String CLOUDBASE_WRITER_MAX_LATENCY = "sc.cloudbase.writer.maxlatency";
     public static final String CLOUDBASE_WRITER_MAX_MEMORY = "sc.cloudbase.writer.maxmemory";
@@ -93,13 +92,8 @@ public class ConfigUtils {
     public static final String USE_PCJ_UPDATER_INDEX = "sc.use.updater";
 
     public static final String FLUO_APP_NAME = "rya.indexing.pcj.fluo.fluoAppName";
-    public static final String USE_PCJ_FLUO_UPDATER = "rya.indexing.pcj.updater.fluo";
     public static final String PCJ_STORAGE_TYPE = "rya.indexing.pcj.storageType";
     public static final String PCJ_UPDATER_TYPE = "rya.indexing.pcj.updaterType";
-
-
-    public static final String USE_INDEXING_SAIL = "sc.use.indexing.sail";
-    public static final String USE_EXTERNAL_SAIL = "sc.use.external.sail";
 
     public static final String USE_MOCK_INSTANCE = ".useMockInstance";
 
@@ -271,7 +265,7 @@ public class ConfigUtils {
     }
 
     public static Authorizations getAuthorizations(final Configuration conf) {
-        final String authString = conf.get(CLOUDBASE_AUTHS, "");
+        final String authString = conf.get(RdfCloudTripleStoreConfiguration.CONF_QUERY_AUTH, "");
         if (authString.isEmpty()) {
             return new Authorizations();
         }
@@ -374,6 +368,11 @@ public class ConfigUtils {
              if (getUseFreeText(conf)) {
                 indexList.add(MongoFreeTextIndexer.class.getName());
                 useFilterIndex = true;
+            }
+             
+            if(getUseTemporal(conf)) {
+            	indexList.add(MongoTemporalIndexer.class.getName());
+            	useFilterIndex = true;
             }
         } else {
 

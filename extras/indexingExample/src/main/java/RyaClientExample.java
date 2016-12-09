@@ -65,11 +65,12 @@ import org.apache.rya.api.client.Install.InstallConfiguration;
 import org.apache.rya.api.client.RyaClient;
 import org.apache.rya.api.client.accumulo.AccumuloConnectionDetails;
 import org.apache.rya.api.client.accumulo.AccumuloRyaClientFactory;
+import org.apache.rya.indexing.accumulo.AccumuloIndexingConfiguration;
 import org.apache.rya.indexing.accumulo.ConfigUtils;
 import org.apache.rya.indexing.external.PrecomputedJoinIndexerConfig;
 import org.apache.rya.sail.config.RyaSailFactory;
 
-/**
+/**  
  * Demonstrates how a {@link RyaClient} may be used to interact with an instance
  * of Accumulo to install and manage a Rya instance.
  */
@@ -132,18 +133,17 @@ public class RyaClientExample {
                      "}";
 
             // Load some statements into the Rya instance.
-            final AccumuloRdfConfiguration conf = new AccumuloRdfConfiguration();
-            conf.setTablePrefix(ryaInstanceName);
-            conf.set(ConfigUtils.CLOUDBASE_USER, accumuloUsername);
-            conf.set(ConfigUtils.CLOUDBASE_PASSWORD, accumuloPassword);
-            conf.set(ConfigUtils.CLOUDBASE_INSTANCE, cluster.getInstanceName());
-            conf.set(ConfigUtils.CLOUDBASE_ZOOKEEPERS, cluster.getZooKeepers());
-            conf.set(ConfigUtils.CLOUDBASE_AUTHS, "U");
-            conf.set(ConfigUtils.USE_PCJ_FLUO_UPDATER, "true");
-            conf.set(ConfigUtils.FLUO_APP_NAME, fluoAppName);
-            conf.set(ConfigUtils.PCJ_STORAGE_TYPE, PrecomputedJoinIndexerConfig.PrecomputedJoinStorageType.ACCUMULO.toString());
-            conf.set(ConfigUtils.PCJ_UPDATER_TYPE, PrecomputedJoinIndexerConfig.PrecomputedJoinUpdaterType.FLUO.toString());
-
+            
+            AccumuloIndexingConfiguration conf = AccumuloIndexingConfiguration.builder()//
+        			.auths("U")
+        			.setAccumuloUser(accumuloUsername)
+        			.setAccumuloPassword(accumuloPassword)
+        			.setAccumuloInstance(cluster.getInstanceName())
+        			.setAccumuloZooKeepers(cluster.getZooKeepers())
+        			.setRyaPrefix(ryaInstanceName)
+        			.pcjUpdaterFluoAppName(fluoAppName)
+        			.build();
+            
             ryaSail = RyaSailFactory.getInstance(conf);
 
             final ValueFactory vf = ryaSail.getValueFactory();

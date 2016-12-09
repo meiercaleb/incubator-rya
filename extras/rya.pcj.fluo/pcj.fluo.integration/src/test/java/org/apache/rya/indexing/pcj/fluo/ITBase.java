@@ -79,6 +79,7 @@ import org.openrdf.sail.Sail;
 import com.google.common.io.Files;
 
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
+import org.apache.rya.api.RdfCloudTripleStoreConfiguration;
 import org.apache.rya.api.client.Install.InstallConfiguration;
 import org.apache.rya.api.client.RyaClient;
 import org.apache.rya.api.client.accumulo.AccumuloConnectionDetails;
@@ -355,11 +356,10 @@ public abstract class ITBase {
         conf.set(ConfigUtils.CLOUDBASE_PASSWORD, ACCUMULO_PASSWORD);
         conf.set(ConfigUtils.CLOUDBASE_INSTANCE, instanceName);
         conf.set(ConfigUtils.CLOUDBASE_ZOOKEEPERS, zookeepers);
-        conf.set(ConfigUtils.CLOUDBASE_AUTHS, "");
+        conf.set(RdfCloudTripleStoreConfiguration.CONF_QUERY_AUTH, "");
         // PCJ configuration information.
         conf.set(ConfigUtils.USE_PCJ, "true");
         conf.set(ConfigUtils.USE_PCJ_UPDATER_INDEX, "true");
-        conf.set(ConfigUtils.USE_PCJ_FLUO_UPDATER, "true");
         conf.set(ConfigUtils.FLUO_APP_NAME, FLUO_APP_NAME);
         conf.set(ConfigUtils.PCJ_STORAGE_TYPE,
                 PrecomputedJoinIndexerConfig.PrecomputedJoinStorageType.ACCUMULO.toString());

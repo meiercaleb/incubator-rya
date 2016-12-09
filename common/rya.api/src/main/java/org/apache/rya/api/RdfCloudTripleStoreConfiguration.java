@@ -66,59 +66,7 @@ public abstract class RdfCloudTripleStoreConfiguration extends Configuration {
     public static final String CONF_OPTIMIZERS = "query.optimizers";
     public static final String CONF_PCJ_OPTIMIZER = "pcj.query.optimizer";
     public static final String CONF_PCJ_TABLES = "pcj.index.tables";
-
-
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_DISP_QUERYPLAN = CONF_QUERYPLAN_FLAG;
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_AUTH = CONF_QUERY_AUTH;
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_CV = CONF_CV;
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_TTL = CONF_TTL;
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_STARTTIME = CONF_STARTTIME;
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_PERFORMANT = CONF_PERFORMANT;
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_INFER = CONF_INFER;
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_USESTATS = CONF_USE_STATS;
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_OFFSET = CONF_OFFSET;
-    /**
-     * @deprecated use CONF_*
-     */
-    @Deprecated
-	public static final String BINDING_LIMIT = CONF_LIMIT;
-
+    
     public static final String STATS_PUSH_EMPTY_RDFTYPE_DOWN = "conf.stats.rdftype.down";
     public static final String INFER_INCLUDE_INVERSEOF = "infer.include.inverseof";
     public static final String INFER_INCLUDE_SUBCLASSOF = "infer.include.subclassof";

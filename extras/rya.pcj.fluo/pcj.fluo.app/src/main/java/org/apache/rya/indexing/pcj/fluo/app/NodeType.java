@@ -23,6 +23,7 @@ import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.FI
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.JOIN_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.QUERY_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.SP_PREFIX;
+import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.PERIODIC_BIN_PREFIX;
 
 import java.util.List;
 
@@ -38,6 +39,7 @@ import org.apache.fluo.api.data.Column;
  * Represents the different types of nodes that a Query may have.
  */
 public enum NodeType {
+    PERIODIC_BIN(QueryNodeMetadataColumns.PERIODIC_BIN_COLUMNS, FluoQueryColumns.PERIODIC_BIN_BINDING_SET),
     FILTER (QueryNodeMetadataColumns.FILTER_COLUMNS, FluoQueryColumns.FILTER_BINDING_SET),
     JOIN(QueryNodeMetadataColumns.JOIN_COLUMNS, FluoQueryColumns.JOIN_BINDING_SET),
     STATEMENT_PATTERN(QueryNodeMetadataColumns.STATEMENTPATTERN_COLUMNS, FluoQueryColumns.STATEMENT_PATTERN_BINDING_SET),
@@ -95,6 +97,8 @@ public enum NodeType {
             type = JOIN;
         } else if(nodeId.startsWith(QUERY_PREFIX)) {
             type = QUERY;
+        } else if(nodeId.startsWith(PERIODIC_BIN_PREFIX)) {
+            type = PERIODIC_BIN;
         }
 
         return Optional.fromNullable(type);

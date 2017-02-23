@@ -1,11 +1,13 @@
 package api;
 
-import kafka.CommandNotification;
-import kafka.TimestampedNotification;
+import notification.CommandNotification;
+import notification.TimestampedNotification;
 
-public interface PeriodicNotificationCoordinator extends LifeCycle{
+public interface PeriodicNotificationCoordinator extends LifeCycle {
 
-	public void processNextCommandNotification(CommandNotification notification);
-	
-	public TimestampedNotification getNextPeriodicNotification();
+    public void processNextCommandNotification(CommandNotification notification);
+
+    public TimestampedNotification getNextPeriodicNotification();
+    
+    public boolean hasNextNotification();
 }

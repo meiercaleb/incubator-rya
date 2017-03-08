@@ -27,13 +27,11 @@ import org.apache.accumulo.core.client.mapreduce.AbstractInputFormat;
 import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
 import org.apache.rya.api.RdfCloudTripleStoreConstants.TABLE_LAYOUT;
 import org.apache.rya.api.domain.RyaStatement;
@@ -72,7 +70,7 @@ public class RyaInputFormat extends AbstractInputFormat<Text, RyaStatementWritab
     /**
      * Retrieves RyaStatementWritable objects from Accumulo tables.
      */
-    public class RyaStatementRecordReader extends AbstractRecordReader<Text, RyaStatementWritable> {
+    public static class RyaStatementRecordReader extends AbstractRecordReader<Text, RyaStatementWritable> {
         private RyaTripleContext ryaContext;
         private TABLE_LAYOUT tableLayout;
 

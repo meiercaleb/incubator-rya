@@ -22,6 +22,7 @@ package org.apache.rya.api.layout;
 
 
 import org.apache.rya.api.RdfCloudTripleStoreConstants;
+import org.apache.rya.api.RdfCloudTripleStoreConstants.TABLE_LAYOUT;
 
 /**
  * Created by IntelliJ IDEA.
@@ -72,6 +73,22 @@ public class TablePrefixLayoutStrategy implements TableLayoutStrategy{
     @Override
     public String getSelectivity() {
         return tablePrefix + RdfCloudTripleStoreConstants.TBL_SEL_SUFFIX;
+    }
+    
+    public String getTableName(TABLE_LAYOUT layout) {
+        String tableName = "";
+        switch(layout) {
+            case SPO:
+                tableName = getSpo();
+                break;
+            case PO:
+                tableName = getPo();
+                break;
+            case OSP:
+                tableName = getOsp();
+                break;
+        }   
+        return tableName;
     }
 
     

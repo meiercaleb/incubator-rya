@@ -36,6 +36,7 @@ import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
 import org.apache.rya.accumulo.AccumuloRyaDAO;
+import org.apache.rya.accumulo.spark.TriplePatternRowInputFormat.StatementReturnFields;
 import org.apache.rya.accumulo.spark.TriplePatternRowInputFormat.StatementToRowReader;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaURI;
@@ -115,7 +116,7 @@ public class TriplePatternRowInputFormatTest {
 
         Job job = Job.getInstance();
 
-        TriplePatternRowInputFormat.setTriplePattern(job, new RyaStatement(new RyaURI("http://Joe"),new RyaURI("http://worksAt"), null, null, null), tablePrefix);
+        TriplePatternRowInputFormat.setTriplePattern(job, new RyaStatement(new RyaURI("http://Joe"),new RyaURI("http://worksAt"), null, null, null), tablePrefix, StatementReturnFields.Empty);
         TriplePatternRowInputFormat.setMockInstance(job, instance.getInstanceName());
         TriplePatternRowInputFormat.setConnectorInfo(job, username, password);
         TriplePatternRowInputFormat inputFormat = new TriplePatternRowInputFormat();
@@ -133,6 +134,7 @@ public class TriplePatternRowInputFormatTest {
         while(StatementToRowReader.nextKeyValue()) {
             StringRowWritable writable = StatementToRowReader.getCurrentValue();
             Row value = writable.getRow();
+            Assert.assertEquals(2, value.size());
             Text text = StatementToRowReader.getCurrentKey();
             results.add(value);
 
@@ -188,7 +190,7 @@ public class TriplePatternRowInputFormatTest {
 
         Job job = Job.getInstance();
 
-        TriplePatternRowInputFormat.setTriplePattern(job, new RyaStatement(new RyaURI("http://Joe"),null, null, null, null), tablePrefix);
+        TriplePatternRowInputFormat.setTriplePattern(job, new RyaStatement(new RyaURI("http://Joe"),null, null, null, null), tablePrefix, StatementReturnFields.Empty);
         TriplePatternRowInputFormat.setMockInstance(job, instance.getInstanceName());
         TriplePatternRowInputFormat.setConnectorInfo(job, username, password);
         TriplePatternRowInputFormat inputFormat = new TriplePatternRowInputFormat();
@@ -206,6 +208,7 @@ public class TriplePatternRowInputFormatTest {
         while(StatementToRowReader.nextKeyValue()) {
             StringRowWritable writable = StatementToRowReader.getCurrentValue();
             Row value = writable.getRow();
+            Assert.assertEquals(3, value.size());
             Text text = StatementToRowReader.getCurrentKey();
             results.add(value);
 
@@ -262,7 +265,7 @@ public class TriplePatternRowInputFormatTest {
 
         Job job = Job.getInstance();
 
-        TriplePatternRowInputFormat.setTriplePattern(job, new RyaStatement(null, null, new RyaURI("http://www.google.com"), null, null), tablePrefix);
+        TriplePatternRowInputFormat.setTriplePattern(job, new RyaStatement(null, null, new RyaURI("http://www.google.com"), null, null), tablePrefix, StatementReturnFields.Empty);
         TriplePatternRowInputFormat.setMockInstance(job, instance.getInstanceName());
         TriplePatternRowInputFormat.setConnectorInfo(job, username, password);
         TriplePatternRowInputFormat inputFormat = new TriplePatternRowInputFormat();
@@ -280,6 +283,7 @@ public class TriplePatternRowInputFormatTest {
         while(StatementToRowReader.nextKeyValue()) {
             StringRowWritable writable = StatementToRowReader.getCurrentValue();
             Row value = writable.getRow();
+            Assert.assertEquals(3, value.size());
             Text text = StatementToRowReader.getCurrentKey();
             results.add(value);
 
@@ -327,7 +331,7 @@ public class TriplePatternRowInputFormatTest {
 
         Job job = Job.getInstance();
 
-        TriplePatternRowInputFormat.setTriplePattern(job, new RyaStatement(null, null, null, new RyaURI("http://context_1")), tablePrefix);
+        TriplePatternRowInputFormat.setTriplePattern(job, new RyaStatement(null, null, null, new RyaURI("http://context_1")), tablePrefix, StatementReturnFields.Empty);
         TriplePatternRowInputFormat.setMockInstance(job, instance.getInstanceName());
         TriplePatternRowInputFormat.setConnectorInfo(job, username, password);
         TriplePatternRowInputFormat inputFormat = new TriplePatternRowInputFormat();
@@ -345,6 +349,73 @@ public class TriplePatternRowInputFormatTest {
         while(StatementToRowReader.nextKeyValue()) {
             StringRowWritable writable = StatementToRowReader.getCurrentValue();
             Row value = writable.getRow();
+            Assert.assertEquals(3, value.size());
+            Text text = StatementToRowReader.getCurrentKey();
+            results.add(value);
+
+            System.out.println("Row: " + value);
+            System.out.println("Key: " + text);
+        }
+
+        System.out.println(results.size());
+        Assert.assertEquals(2, results.size());
+    }
+    
+    
+    @Test
+    public void testInputFormatReturnAll() throws Exception {
+        RyaStatement input1 = RyaStatement.builder()
+            .setSubject(new RyaURI("http://Bob"))
+            .setPredicate(new RyaURI("http://worksAt"))
+            .setObject(new RyaURI("http://www.google.com"))
+            .setContext(new RyaURI("http://context_1"))
+            .setColumnVisibility(new byte[0])
+            .setMetadata(new StatementMetadata())
+            .build();
+        
+        RyaStatement input2 = RyaStatement.builder()
+                .setSubject(new RyaURI("http://Joe"))
+                .setPredicate(new RyaURI("http://worksAt"))
+                .setObject(new RyaURI("http://www.yahoo.com"))
+                .setContext(new RyaURI("http://context_1"))
+                .setColumnVisibility(new byte[0])
+                .setMetadata(new StatementMetadata())
+                .build();
+        
+        RyaStatement input3 = RyaStatement.builder()
+                .setSubject(new RyaURI("http://Joe"))
+                .setPredicate(new RyaURI("http://livesIn"))
+                .setObject(new RyaURI("http://Virginia"))
+                .setContext(new RyaURI("http://context_2"))
+                .setColumnVisibility(new byte[0])
+                .setMetadata(new StatementMetadata())
+                .build();
+        
+        dao.add(input1);
+        dao.add(input2);
+        dao.add(input3);
+
+        Job job = Job.getInstance();
+
+        TriplePatternRowInputFormat.setTriplePattern(job, new RyaStatement(null, null, null, new RyaURI("http://context_1")), tablePrefix, StatementReturnFields.All);
+        TriplePatternRowInputFormat.setMockInstance(job, instance.getInstanceName());
+        TriplePatternRowInputFormat.setConnectorInfo(job, username, password);
+        TriplePatternRowInputFormat inputFormat = new TriplePatternRowInputFormat();
+        
+        JobContext context = new JobContextImpl(job.getConfiguration(), job.getJobID());
+        List<InputSplit> splits = inputFormat.getSplits(context);
+        Assert.assertEquals(1, splits.size());
+        TaskAttemptContext taskAttemptContext = new TaskAttemptContextImpl(context.getConfiguration(), new TaskAttemptID(new TaskID(), 1));
+
+        RecordReader<Text, StringRowWritable> reader = inputFormat.createRecordReader(splits.get(0), taskAttemptContext);
+        StatementToRowReader StatementToRowReader = (StatementToRowReader)reader;
+        StatementToRowReader.initialize(splits.get(0), taskAttemptContext);
+
+        List<Row> results = new ArrayList<Row>();
+        while(StatementToRowReader.nextKeyValue()) {
+            StringRowWritable writable = StatementToRowReader.getCurrentValue();
+            Row value = writable.getRow();
+            Assert.assertEquals(4, value.size());
             Text text = StatementToRowReader.getCurrentKey();
             results.add(value);
 

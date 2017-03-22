@@ -10,20 +10,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.HadoopCompatUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
@@ -31,7 +26,6 @@ import org.apache.rya.accumulo.mr.MRUtils;
 import org.apache.rya.api.RdfCloudTripleStoreConstants.TABLE_LAYOUT;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaType;
-import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.layout.TablePrefixLayoutStrategy;
 import org.apache.rya.api.query.strategy.ByteRange;
 import org.apache.rya.api.query.strategy.TriplePatternStrategy;
@@ -50,13 +44,16 @@ public class TriplePatternRowInputFormat extends InputFormatBase<Text, StringRow
     public static final String EMPTY_STATEMENT_FIELDS = "empty_fields";
     public static final String DELIM = ",";
 
-    public static void setTriplePattern(Job job, RyaStatement statement, String tablePrefix) {
+    public static enum StatementReturnFields {
+        Empty, All
+    };
+
+    public static void setTriplePattern(Job job, RyaStatement statement, String tablePrefix, StatementReturnFields fieldsToReturn) {
         RyaTripleContext context = new RyaTripleContext(false);
         TriplePatternStrategy strategy = context.retrieveStrategy(statement);
         try {
-            Entry<TABLE_LAYOUT, ByteRange> rangeEntry = strategy.defineRange(statement.getSubject(),
-                    statement.getPredicate(), statement.getObject(), statement.getContext(),
-                    new AccumuloRdfConfiguration());
+            Entry<TABLE_LAYOUT, ByteRange> rangeEntry = strategy.defineRange(statement.getSubject(), statement.getPredicate(),
+                    statement.getObject(), statement.getContext(), new AccumuloRdfConfiguration());
             ByteRange byteRange = rangeEntry.getValue();
             Range range = new Range(new Text(byteRange.getStart()), new Text(byteRange.getEnd()));
             setRanges(job, Collections.singleton(range));
@@ -65,47 +62,51 @@ public class TriplePatternRowInputFormat extends InputFormatBase<Text, StringRow
             e.printStackTrace();
         }
         if (statement.getContext() != null) {
-            fetchColumns(job, Collections
-                    .singleton(new Pair<Text, Text>(new Text(statement.getContext().getData()), new Text())));
+            fetchColumns(job, Collections.singleton(new Pair<Text, Text>(new Text(statement.getContext().getData()), new Text())));
         }
 
         TABLE_LAYOUT layout = strategy.getLayout();
         setTableLayout(job, layout);
         TablePrefixLayoutStrategy prefixStrategy = new TablePrefixLayoutStrategy(tablePrefix);
         setInputTableName(job, prefixStrategy.getTableName(layout));
-        setEmptyFields(job, statement);
+        setEmptyFields(job, statement, fieldsToReturn);
     }
 
-    private static void setEmptyFields(Job conf, RyaStatement statement) {
+    private static void setEmptyFields(Job conf, RyaStatement statement, StatementReturnFields fieldsToReturn) {
 
         StringBuffer emptyFieldsBuffer = new StringBuffer();
 
-        if (statement.getSubject() == null) {
-            emptyFieldsBuffer.append(1).append(DELIM);
+        if (fieldsToReturn == StatementReturnFields.All) {
+            emptyFieldsBuffer.append(1).append(DELIM).append(1).append(DELIM).append(1).append(DELIM).append(1);
         } else {
-            emptyFieldsBuffer.append(0).append(DELIM);
-        }
+            if (statement.getSubject() == null) {
+                emptyFieldsBuffer.append(1).append(DELIM);
+            } else {
+                emptyFieldsBuffer.append(0).append(DELIM);
+            }
 
-        if (statement.getPredicate() == null) {
-            emptyFieldsBuffer.append(1).append(DELIM);
-        } else {
-            emptyFieldsBuffer.append(0).append(DELIM);
-        }
+            if (statement.getPredicate() == null) {
+                emptyFieldsBuffer.append(1).append(DELIM);
+            } else {
+                emptyFieldsBuffer.append(0).append(DELIM);
+            }
 
-        if (statement.getObject() == null) {
-            emptyFieldsBuffer.append(1).append(DELIM);
-        } else {
-            emptyFieldsBuffer.append(0).append(DELIM);
-        }
+            if (statement.getObject() == null) {
+                emptyFieldsBuffer.append(1).append(DELIM);
+            } else {
+                emptyFieldsBuffer.append(0).append(DELIM);
+            }
 
-        if (statement.getContext() == null) {
-            emptyFieldsBuffer.append(1).append(DELIM);
-        } else {
-            emptyFieldsBuffer.append(0).append(DELIM);
-        }
+            if (statement.getContext() == null) {
+                emptyFieldsBuffer.append(1).append(DELIM);
+            } else {
+                emptyFieldsBuffer.append(0).append(DELIM);
+            }
 
-        emptyFieldsBuffer.delete(emptyFieldsBuffer.length() - 1, emptyFieldsBuffer.length());
+            emptyFieldsBuffer.delete(emptyFieldsBuffer.length() - 1, emptyFieldsBuffer.length());
+        }
         conf.getConfiguration().set(EMPTY_STATEMENT_FIELDS, emptyFieldsBuffer.toString());
+
     }
 
     private static void setTableLayout(Job conf, TABLE_LAYOUT layout) {
@@ -198,16 +199,16 @@ public class TriplePatternRowInputFormat extends InputFormatBase<Text, StringRow
             for (int i = 0; i < rowPosToInclude.size(); i++) {
                 int j = rowPosToInclude.get(i);
                 Preconditions.checkArgument(j < 4 && j > -1);
-                if(j == 2) {
+                if (j == 2) {
                     RyaType type = RyaContext.getInstance().deserialize(byteList.get(j));
                     String data = type.getData();
                     String dataType = type.getDataType().toString();
                     entries[i] = data + "^^" + dataType;
                 } else if (j == 3) {
                     if (context != null && !context.isEmpty()) {
-                        entries[rowPosToInclude.size()-1] = context;
+                        entries[rowPosToInclude.size() - 1] = context;
                     } else {
-                        entries[rowPosToInclude.size()-1] = null;
+                        entries[rowPosToInclude.size() - 1] = "NA";
                     }
                 } else {
                     entries[i] = new String(byteList.get(j)) + "^^" + XMLSchema.ANYURI.toString();

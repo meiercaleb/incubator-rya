@@ -21,20 +21,18 @@ package org.apache.rya.indexing.pcj.fluo.app.query;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Map;
-
-import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
-import edu.umd.cs.findbugs.annotations.NonNull;
-
-import org.apache.rya.indexing.pcj.fluo.app.NodeType;
-import org.apache.rya.indexing.pcj.fluo.app.query.JoinMetadata.JoinType;
-import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
-
-import com.google.common.collect.Sets;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.fluo.api.client.SnapshotBase;
 import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.Column;
+import org.apache.rya.indexing.pcj.fluo.app.NodeType;
+import org.apache.rya.indexing.pcj.fluo.app.query.JoinMetadata.JoinType;
+import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
+
+import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Reads and writes {@link FluoQuery} instances and their components to/from
@@ -154,6 +152,81 @@ public class FluoQueryMetadataDAO {
                 .setParentNodeId(parentNodeId)
                 .setChildNodeId(childNodeId);
     }
+    
+    
+    /**
+     * Write an instance of {@link PeriodicBinMetadata} to the Fluo table.
+     *
+     * @param tx - The transaction that will be used to commit the metadata. (not null)
+     * @param metadata - The PeriodicBin node metadata that will be written to the table. (not null)
+     */
+    public void write(final TransactionBase tx, final PeriodicBinMetadata metadata) {
+        checkNotNull(tx);
+        checkNotNull(metadata);
+
+        final String rowId = metadata.getNodeId();
+        tx.set(rowId, FluoQueryColumns.PERIODIC_BIN_NODE_ID, rowId);
+        tx.set(rowId, FluoQueryColumns.PERIODIC_BIN_VARIABLE_ORDER, metadata.getVariableOrder().toString());
+        tx.set(rowId, FluoQueryColumns.PERIODIC_BIN_PARENT_NODE_ID, metadata.getParentNodeId() );
+        tx.set(rowId, FluoQueryColumns.PERIODIC_BIN_CHILD_NODE_ID, metadata.getChildNodeId() );
+        tx.set(rowId, FluoQueryColumns.PERIODIC_BIN_PERIOD, Integer.toString(metadata.getPeriod()));
+        tx.set(rowId, FluoQueryColumns.PERIODIC_BIN_WINDOWSIZE, Integer.toString(metadata.getWindowSize()));
+        tx.set(rowId, FluoQueryColumns.PERIODIC_BIN_TIMEUNIT, metadata.getUnit().name());
+        tx.set(rowId, FluoQueryColumns.PERIODIC_BIN_STARTTIME, Long.toString(metadata.getStartTime()));
+        tx.set(rowId, FluoQueryColumns.PERIODIC_BIN_TEMPORAL_VARIABLE, metadata.getTemporalVariable());
+    }
+
+    /**
+     * Read an instance of {@link PeriodicBinMetadata} from the Fluo table.
+     *
+     * @param sx - The snapshot that will be used to read the metadata. (not null)
+     * @param nodeId - The nodeId of the PeriodicBin node that will be read. (not null)
+     * @return The {@link PeriodicBinMetadata} that was read from table.
+     */
+    public PeriodicBinMetadata readPeriodicBinMetadata(final SnapshotBase sx, final String nodeId) {
+        return readPeriodicBinMetadataBuilder(sx, nodeId).build();
+    }
+
+    private PeriodicBinMetadata.Builder readPeriodicBinMetadataBuilder(final SnapshotBase sx, final String nodeId) {
+        checkNotNull(sx);
+        checkNotNull(nodeId);
+
+        // Fetch the values from the Fluo table.
+        final String rowId = nodeId;
+        final Map<Column, String> values = sx.gets(rowId, 
+                FluoQueryColumns.PERIODIC_BIN_VARIABLE_ORDER,
+                FluoQueryColumns.PERIODIC_BIN_PARENT_NODE_ID,
+                FluoQueryColumns.PERIODIC_BIN_CHILD_NODE_ID,
+                FluoQueryColumns.PERIODIC_BIN_PERIOD,
+                FluoQueryColumns.PERIODIC_BIN_WINDOWSIZE,
+                FluoQueryColumns.PERIODIC_BIN_STARTTIME,
+                FluoQueryColumns.PERIODIC_BIN_TIMEUNIT,
+                FluoQueryColumns.PERIODIC_BIN_TEMPORAL_VARIABLE);
+
+        // Return an object holding them.
+        final String varOrderString = values.get(FluoQueryColumns.PERIODIC_BIN_VARIABLE_ORDER);
+        final VariableOrder varOrder = new VariableOrder(varOrderString);
+        final String parentNodeId = values.get(FluoQueryColumns.PERIODIC_BIN_PARENT_NODE_ID);
+        final String childNodeId = values.get(FluoQueryColumns.PERIODIC_BIN_CHILD_NODE_ID);
+        final String temporalVariable = values.get(FluoQueryColumns.PERIODIC_BIN_TEMPORAL_VARIABLE);
+        final String period = values.get(FluoQueryColumns.PERIODIC_BIN_PERIOD);
+        final String window = values.get(FluoQueryColumns.PERIODIC_BIN_WINDOWSIZE);
+        final String start = values.get(FluoQueryColumns.PERIODIC_BIN_STARTTIME);
+        final String timeUnit = values.get(FluoQueryColumns.PERIODIC_BIN_TIMEUNIT);
+
+        return PeriodicBinMetadata.builder()
+                .setNodeId(nodeId)
+                .setVarOrder(varOrder)
+                .setParentNodeId(parentNodeId)
+                .setChildNodeId(childNodeId)
+                .setWindowSize(Integer.parseInt(window))
+                .setPeriod(Integer.parseInt(period))
+                .setTemporalVariable(temporalVariable)
+                .setStartTime(Long.parseLong(start))
+                .setUnit(TimeUnit.valueOf(timeUnit));
+                
+    }
+    
 
     /**
      * Write an instance of {@link JoinMetadata} to the Fluo table.

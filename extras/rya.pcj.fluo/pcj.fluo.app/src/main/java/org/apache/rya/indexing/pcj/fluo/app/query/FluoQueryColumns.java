@@ -88,6 +88,7 @@ public class FluoQueryColumns {
     public static final String FILTER_METADATA_CF = "filterMetadata";
     public static final String JOIN_METADATA_CF = "joinMetadata";
     public static final String STATEMENT_PATTERN_METADATA_CF = "statementPatternMetadata";
+    public static final String PERIODIC_BIN_METADATA_CF = "periodicBinMetadata";
 
     /**
      * New triples that have been added to Rya are written as a row in this
@@ -137,13 +138,25 @@ public class FluoQueryColumns {
 
     // Filter Metadata columns.
     public static final Column FILTER_NODE_ID = new Column(FILTER_METADATA_CF, "nodeId");
-    public static final Column FILTER_VARIABLE_ORDER = new Column(FILTER_METADATA_CF, "veriableOrder");
+    public static final Column FILTER_VARIABLE_ORDER = new Column(FILTER_METADATA_CF, "variableOrder");
     public static final Column FILTER_ORIGINAL_SPARQL = new Column(FILTER_METADATA_CF, "originalSparql");
     public static final Column FILTER_INDEX_WITHIN_SPARQL = new Column(FILTER_METADATA_CF, "filterIndexWithinSparql");
     public static final Column FILTER_PARENT_NODE_ID = new Column(FILTER_METADATA_CF, "parentNodeId");
     public static final Column FILTER_CHILD_NODE_ID = new Column(FILTER_METADATA_CF, "childNodeId");
     public static final Column FILTER_BINDING_SET = new Column(FILTER_METADATA_CF, "bindingSet");
-
+    
+    // Periodic Bin Metadata columns.
+    public static final Column PERIODIC_BIN_NODE_ID = new Column(PERIODIC_BIN_METADATA_CF, "nodeId");
+    public static final Column PERIODIC_BIN_VARIABLE_ORDER = new Column(PERIODIC_BIN_METADATA_CF, "variableOrder");
+    public static final Column PERIODIC_BIN_PARENT_NODE_ID = new Column(PERIODIC_BIN_METADATA_CF, "parentNodeId");
+    public static final Column PERIODIC_BIN_CHILD_NODE_ID = new Column(PERIODIC_BIN_METADATA_CF, "childNodeId");
+    public static final Column PERIODIC_BIN_BINDING_SET = new Column(PERIODIC_BIN_METADATA_CF, "bindingSet");
+    public static final Column PERIODIC_BIN_PERIOD = new Column(PERIODIC_BIN_METADATA_CF, "period");
+    public static final Column PERIODIC_BIN_WINDOWSIZE = new Column(PERIODIC_BIN_METADATA_CF, "windowSize");
+    public static final Column PERIODIC_BIN_STARTTIME = new Column(PERIODIC_BIN_METADATA_CF, "startTime");
+    public static final Column PERIODIC_BIN_TIMEUNIT = new Column(PERIODIC_BIN_METADATA_CF, "timeUnit");
+    public static final Column PERIODIC_BIN_TEMPORAL_VARIABLE = new Column(PERIODIC_BIN_METADATA_CF, "temporalVariable");
+    
     // Join Metadata columns.
     public static final Column JOIN_NODE_ID = new Column(JOIN_METADATA_CF, "nodeId");
     public static final Column JOIN_VARIABLE_ORDER = new Column(JOIN_METADATA_CF, "variableOrder");
@@ -174,6 +187,21 @@ public class FluoQueryColumns {
                         QUERY_VARIABLE_ORDER,
                         QUERY_SPARQL,
                         QUERY_CHILD_NODE_ID)),
+        
+        
+        /**
+         * The columns a {@link PeriodicBinMetadata} object's fields are stored within.
+         */
+        PERIODIC_BIN_COLUMNS(
+                Arrays.asList(PERIODIC_BIN_NODE_ID,
+                        PERIODIC_BIN_VARIABLE_ORDER,
+                        PERIODIC_BIN_PERIOD,
+                        PERIODIC_BIN_WINDOWSIZE,
+                        PERIODIC_BIN_TIMEUNIT,
+                        PERIODIC_BIN_TEMPORAL_VARIABLE,
+                        PERIODIC_BIN_STARTTIME,
+                        PERIODIC_BIN_PARENT_NODE_ID,
+                        PERIODIC_BIN_CHILD_NODE_ID)),
 
         /**
          * The columns a {@link FilterMetadata} object's fields are stored within.

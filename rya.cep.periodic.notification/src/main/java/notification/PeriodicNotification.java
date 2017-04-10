@@ -1,7 +1,6 @@
 package notification;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
@@ -13,18 +12,23 @@ public class PeriodicNotification implements Notification {
     private String id;
     private long period;
     private TimeUnit periodTimeUnit;
-    private TimeUnit initialDelayTimeUnit;
     private long initialDelay;
-    private Optional<String> message;
+    private long startTime;
 
-    private PeriodicNotification(String id, long period, TimeUnit periodTimeUnit, long initialDelay,
-            TimeUnit initialDelayTimeUnit, String message) {
+    public PeriodicNotification(String id, long startTime, long period, TimeUnit periodTimeUnit, long initialDelay) {
+        Preconditions.checkNotNull(id);
+        Preconditions.checkNotNull(periodTimeUnit);
+        Preconditions.checkArgument(startTime > 0 && period > 0 && initialDelay > 0);
         this.id = id;
         this.period = period;
+        this.startTime = startTime;
         this.periodTimeUnit = periodTimeUnit;
-        this.initialDelayTimeUnit = initialDelayTimeUnit;
         this.initialDelay = initialDelay;
-        this.message = Optional.ofNullable(message);
+    }
+    
+
+    public PeriodicNotification(PeriodicNotification other) {
+        this(other.id, other.startTime, other.period, other.periodTimeUnit, other.initialDelay);
     }
 
     public String getId() {
@@ -35,20 +39,16 @@ public class PeriodicNotification implements Notification {
         return period;
     }
 
-    public TimeUnit getPeriodTimeUnit() {
-        return periodTimeUnit;
+    public long getStartTime() {
+        return startTime;
     }
 
-    public TimeUnit getInitialDelayTimeUnit() {
-        return initialDelayTimeUnit;
+    public TimeUnit getTimeUnit() {
+        return periodTimeUnit;
     }
 
     public long getInitialDelay() {
         return initialDelay;
-    }
-
-    public Optional<String> getMessage() {
-        return message;
     }
 
     @Override
@@ -56,11 +56,9 @@ public class PeriodicNotification implements Notification {
         StringBuilder builder = new StringBuilder();
         String delim = "=";
         String delim2 = ";";
-        return builder.append("id").append(delim).append(id).append(delim2).append("period").append(delim)
-                .append(period).append(delim2).append("periodTimeUnit").append(delim).append(periodTimeUnit)
-                .append(delim2).append("initialDelay").append(delim).append(initialDelay).append(delim2)
-                .append("initialDelayTimeUnit").append(delim).append(initialDelayTimeUnit).append(delim2)
-                .append("message").append(delim).append(message.toString()).toString();
+        return builder.append("id").append(delim).append(id).append(delim2).append("period").append(delim).append(period).append(delim2)
+                .append("startTime").append(delim).append(startTime).append(delim2).append("periodTimeUnit").append(delim)
+                .append(periodTimeUnit).append(delim2).append("initialDelay").append(delim).append(initialDelay).toString();
     }
 
     @Override
@@ -74,11 +72,8 @@ public class PeriodicNotification implements Notification {
         }
 
         PeriodicNotification notification = (PeriodicNotification) other;
-        return Objects.equals(this.id, notification.id) && (this.period == notification.period)
-                && Objects.equals(this.periodTimeUnit, notification.periodTimeUnit)
-                && (this.initialDelay == notification.initialDelay)
-                && Objects.equals(this.initialDelayTimeUnit, notification.initialDelayTimeUnit)
-                && Objects.equals(this.message, notification.message);
+        return Objects.equals(this.id, notification.id) && (this.period == notification.period) && (this.startTime == notification.startTime)
+                && Objects.equals(this.periodTimeUnit, notification.periodTimeUnit) && (this.initialDelay == notification.initialDelay);
     }
 
     @Override
@@ -86,10 +81,9 @@ public class PeriodicNotification implements Notification {
         int result = 17;
         result = 31 * result + id.hashCode();
         result = 31 * result + Long.hashCode(period);
+        result = 31 * result + Long.hashCode(startTime);
         result = 31 * result + this.periodTimeUnit.hashCode();
         result = 31 * result + Long.hashCode(initialDelay);
-        result = 31 * result + this.initialDelayTimeUnit.hashCode();
-        result = 31 * result + Objects.hash(message);
         return result;
     }
 
@@ -101,10 +95,9 @@ public class PeriodicNotification implements Notification {
 
         private String id;
         private long period;
+        private long startTime;
         private TimeUnit periodTimeUnit;
-        private TimeUnit initialDelayTimeUnit;
         private long initialDelay = 0;
-        private String message = null;
 
         public Builder id(String id) {
             this.id = id;
@@ -116,13 +109,13 @@ public class PeriodicNotification implements Notification {
             return this;
         }
 
-        public Builder periodTimeUnit(TimeUnit timeUnit) {
+        public Builder timeUnit(TimeUnit timeUnit) {
             this.periodTimeUnit = timeUnit;
             return this;
         }
 
-        public Builder initialDelayTimeUnit(TimeUnit timeUnit) {
-            this.initialDelayTimeUnit = timeUnit;
+        public Builder startTime(long startTime) {
+            this.startTime = startTime;
             return this;
         }
 
@@ -131,23 +124,8 @@ public class PeriodicNotification implements Notification {
             return this;
         }
 
-        public Builder message(String message) {
-            this.message = message;
-            return this;
-        }
-
         public PeriodicNotification build() {
-            Preconditions.checkNotNull(id);
-            Preconditions.checkArgument(period > 0);
-            Preconditions.checkNotNull(periodTimeUnit);
-            if (initialDelayTimeUnit == null) {
-                if (initialDelay > 0) {
-                    throw new IllegalStateException("Must specify TimeUnit for initial delay.");
-                } else {
-                    initialDelayTimeUnit = periodTimeUnit;
-                }
-            }
-            return new PeriodicNotification(id, period, periodTimeUnit, initialDelay, initialDelayTimeUnit, message);
+            return new PeriodicNotification(id, startTime, period, periodTimeUnit, initialDelay);
         }
 
     }

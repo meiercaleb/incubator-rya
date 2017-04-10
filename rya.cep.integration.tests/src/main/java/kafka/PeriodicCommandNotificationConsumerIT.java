@@ -14,8 +14,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import api.PeriodicNotificationCoordinator;
-import coordinator.ScheduledExecutorServiceCoordinator;
+import api.NotificationCoordinatorExecutor;
+import coordinator.PeriodicNotificationCoordinatorExecutor;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServer;
 import kafka.utils.MockTime;
@@ -40,7 +40,7 @@ public class PeriodicCommandNotificationConsumerIT {
     private Time mock;
     private KafkaServer kafkaServer;
     private KafkaNotificationProvider pncg;
-    private PeriodicNotificationCoordinator coord;
+    private NotificationCoordinatorExecutor coord;
 
     @Before
     public void setUp() {
@@ -55,7 +55,7 @@ public class PeriodicCommandNotificationConsumerIT {
         mock = new MockTime();
         kafkaServer = TestUtils.createServer(config, mock);
 
-        coord = new ScheduledExecutorServiceCoordinator(2);
+        coord = new PeriodicNotificationCoordinatorExecutor(2);
         coord.start();
     }
 
@@ -73,7 +73,7 @@ public class PeriodicCommandNotificationConsumerIT {
         pncg.start();
         
         // setup producer
-        KafkaProducerNotificationClient client = new KafkaProducerNotificationClient(topic,
+        KafkaNotificationRegistrationClient client = new KafkaNotificationRegistrationClient(topic,
                 TestUtils.getProducerConfig("localhost:" + port));
 
         //create message to produce

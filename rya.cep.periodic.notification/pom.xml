@@ -31,17 +31,30 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>4.12</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.fluo</groupId>
 			<artifactId>fluo-api</artifactId>
-			<version>1.0.0-incubating</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.fluo</groupId>
 			<artifactId>fluo-core</artifactId>
-			<version>1.0.0-incubating</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.rya</groupId>
+			<artifactId>rya.indexing</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.openrdf.sesame</groupId>
+			<artifactId>sesame-query</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.rya</groupId>
+			<artifactId>rya.indexing.pcj</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.rya</groupId>
+			<artifactId>rya.pcj.fluo.app</artifactId>
 		</dependency>
 	</dependencies>
 

@@ -1,18 +1,19 @@
 package notification;
 
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
-public class TimestampedNotification extends BasicNotification {
+public class TimestampedNotification extends PeriodicNotification {
 
     private Date date;
 
-    public TimestampedNotification(String id) {
-        super(id);
+    public TimestampedNotification(String id, long startTime, long period, TimeUnit periodTimeUnit, long initialDelay) {
+        super(id, startTime, period, periodTimeUnit, initialDelay);
         date = new Date();
     }
-
-    public TimestampedNotification(String id, String message) {
-        super(id, message);
+    
+    public TimestampedNotification(PeriodicNotification notification) {
+        super(notification);
         date = new Date();
     }
 

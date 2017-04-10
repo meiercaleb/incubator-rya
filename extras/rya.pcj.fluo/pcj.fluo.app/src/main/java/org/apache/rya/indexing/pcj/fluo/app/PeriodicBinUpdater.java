@@ -30,7 +30,7 @@ import com.google.common.base.Preconditions;
 public class PeriodicBinUpdater {
 
     private static final Logger log = Logger.getLogger(PeriodicBinUpdater.class);
-    private static final String BIN_ID = "PeriodEndTime";
+    public static final String BIN_ID = "PeriodEndTime";
     private static final ValueFactory vf = new ValueFactoryImpl();
     private static final BindingSetStringConverter idConverter = new BindingSetStringConverter();
     private static final VisibilityBindingSetStringConverter valueConverter = new VisibilityBindingSetStringConverter();

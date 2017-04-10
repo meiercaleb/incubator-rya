@@ -1,0 +1,10 @@
+package org.apache.rya.indexing.pcj.fluo.app.batch;
+
+import org.apache.fluo.api.client.TransactionBase;
+
+public class NoOpBatchUpdater implements BatchBindingSetUpdater {
+
+    @Override
+    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) {}
+
+}

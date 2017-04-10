@@ -12,14 +12,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import api.LifeCycle;
-import api.PeriodicNotificationCoordinator;
+import api.NotificationCoordinatorExecutor;
 import kafka.consumer.ConsumerConfig;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.serializer.StringDecoder;
 import kafka.utils.VerifiableProperties;
 import notification.CommandNotification;
-import notification.CommandNotificationSerializer;
+import serialization.CommandNotificationSerializer;
 
 public class KafkaNotificationProvider implements LifeCycle {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaNotificationProvider.class);
@@ -27,9 +27,9 @@ public class KafkaNotificationProvider implements LifeCycle {
     private String topic;
     private ExecutorService executor;
     private Properties props;
-    private PeriodicNotificationCoordinator coord;
+    private NotificationCoordinatorExecutor coord;
 
-    public KafkaNotificationProvider(Properties props, PeriodicNotificationCoordinator coord) {
+    public KafkaNotificationProvider(Properties props, NotificationCoordinatorExecutor coord) {
         this.props = props;
         this.consumer = kafka.consumer.Consumer.createJavaConsumerConnector(createConsumerConfig(props));
         this.topic = props.getProperty("kafka.topic");

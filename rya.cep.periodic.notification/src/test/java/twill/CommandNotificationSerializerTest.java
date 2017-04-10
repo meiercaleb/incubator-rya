@@ -9,7 +9,7 @@ import org.junit.Test;
 import notification.BasicNotification;
 import notification.CommandNotification;
 import notification.CommandNotification.Command;
-import notification.CommandNotificationSerializer;
+import serialization.CommandNotificationSerializer;
 import notification.PeriodicNotification;
 
 public class CommandNotificationSerializerTest {

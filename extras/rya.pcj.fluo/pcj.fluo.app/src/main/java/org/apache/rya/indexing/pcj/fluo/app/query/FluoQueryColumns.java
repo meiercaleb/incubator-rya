@@ -57,6 +57,22 @@ import org.apache.fluo.api.data.Column;
  *   </table>
  * </p>
  * <p>
+ *   <b>Periodic Bin Metadata</b>
+ *   <table border="1" style="width:100%">
+ *     <tr> <th>Fluo Row</td> <th>Fluo Column</td> <th>Fluo Value</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicBinMetadata:nodeId</td> <td>The Node ID of the Filter.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicBinMetadata:variableOrder</td> <td>The Variable Order binding sets are emitted with.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicBinMetadata:period</td> <td>The period size used to form BindingSet bins.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicBinMetadata:windowSize</td> <td>The window size used to form BindingSet bins.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicBinMetadata:startTime</td> <td>The time at which periodic query was registered.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicBinMetadata:timeUnit</td> <td>The unit of time corresponding to period and window size.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicBinMetadata:temporalVariable</td> <td>The BindingSet variable corresponding to event time.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicBinMetadata:parentNodeId</td> <td>The parent node for this node.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicBinMetadata:childNodeId</td> <td>The child node for this node.</td> </tr>
+ *     <tr> <td>Node ID + DELIM + Binding set String</td> <td>periodicBinMetadata:bindingSet</td> <td>A binned BindingSet.</td> </tr>
+ *   </table>
+ * </p>
+ * <p>
  *   <b>Join Metadata</b>
  *   <table border="1" style="width:100%">
  *     <tr> <th>Fluo Row</td> <th>Fluo Column</td> <th>Fluo Value</td> </tr>
@@ -172,6 +188,18 @@ public class FluoQueryColumns {
     public static final Column STATEMENT_PATTERN_PATTERN = new Column(STATEMENT_PATTERN_METADATA_CF, "pattern");
     public static final Column STATEMENT_PATTERN_PARENT_NODE_ID = new Column(STATEMENT_PATTERN_METADATA_CF, "parentNodeId");
     public static final Column STATEMENT_PATTERN_BINDING_SET = new Column(STATEMENT_PATTERN_METADATA_CF, "bindingSet");
+
+    /**
+     * BatchObserver column for processing tasks that need to be broken into
+     * batches. Entries stored stored in this column are of the form Row:
+     * nodeId, Value: BatchInformation. The nodeId indicates the node that the
+     * batch operation will be performed on. All batch operations are performed
+     * on the bindingSet column for the NodeType indicated by the given nodeId.
+     * For example, if the nodeId indicated that the NodeType was
+     * StatementPattern, then the batch operation would be performed on
+     * {@link FluoQueryColumns#STATEMENT_PATTERN_BINDING_SET}.
+     */
+    public static final Column BATCH_COLUMN = new Column("batch","information");
 
     /**
      * Enumerates the {@link Column}s that hold all of the fields for each type

@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantLock;
@@ -15,24 +14,24 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import api.Notification;
-import api.PeriodicNotificationCoordinator;
+import api.NotificationCoordinatorExecutor;
 import notification.CommandNotification;
+import notification.CommandNotification.Command;
 import notification.PeriodicNotification;
 import notification.TimestampedNotification;
-import notification.CommandNotification.Command;
 
-public class ScheduledExecutorServiceCoordinator implements PeriodicNotificationCoordinator {
+public class PeriodicNotificationCoordinatorExecutor implements NotificationCoordinatorExecutor {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ScheduledExecutorServiceCoordinator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PeriodicNotificationCoordinatorExecutor.class);
     private int numThreads;
     private ScheduledExecutorService producerThreadPool;
     private Map<String, ScheduledFuture<?>> serviceMap = new HashMap<>();
     private BlockingQueue<TimestampedNotification> notifications;
     private final ReentrantLock lock = new ReentrantLock(true);
 
-    public ScheduledExecutorServiceCoordinator(int numThreads) {
+    public PeriodicNotificationCoordinatorExecutor(int numThreads, BlockingQueue<TimestampedNotification> notifications) {
         this.numThreads = numThreads;
-        this.notifications = new LinkedBlockingQueue<>();
+        this.notifications = notifications;
     }
 
     @Override
@@ -42,16 +41,6 @@ public class ScheduledExecutorServiceCoordinator implements PeriodicNotification
             processNotification(notification);
         } finally {
             lock.unlock();
-        }
-    }
-
-    @Override
-    public TimestampedNotification getNextPeriodicNotification() {
-        try {
-            return notifications.take();
-        } catch (InterruptedException e) {
-            LOG.info("Unable to retrieve next notification.  Process interrupted.");
-            throw new RuntimeException(e);
         }
     }
 
@@ -83,7 +72,7 @@ public class ScheduledExecutorServiceCoordinator implements PeriodicNotification
         Preconditions.checkArgument(notification instanceof PeriodicNotification);
         PeriodicNotification notify = (PeriodicNotification) notification;
         ScheduledFuture<?> future = producerThreadPool.scheduleAtFixedRate(new NotificationProducer(notify),
-                notify.getInitialDelay(), notify.getPeriod(), notify.getPeriodTimeUnit());
+                notify.getInitialDelay(), notify.getPeriod(), notify.getTimeUnit());
         serviceMap.put(notify.getId(), future);
     }
 
@@ -106,7 +95,7 @@ public class ScheduledExecutorServiceCoordinator implements PeriodicNotification
 
         public void run() {
             try {
-                notifications.put(new TimestampedNotification(notification.getId()));
+                notifications.put(new TimestampedNotification(notification));
             } catch (InterruptedException e) {
                 LOG.info("Unable to add notification.  Process interrupted. ");
                 throw new RuntimeException(e);
@@ -114,10 +103,4 @@ public class ScheduledExecutorServiceCoordinator implements PeriodicNotification
         }
 
     }
-
-    @Override
-    public boolean hasNextNotification() {
-        return notifications.peek() != null;
-    }
-
 }

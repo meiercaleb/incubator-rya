@@ -11,18 +11,18 @@ import kafka.producer.ProducerConfig;
 import kafka.serializer.StringEncoder;
 import notification.BasicNotification;
 import notification.CommandNotification;
-import notification.CommandNotificationSerializer;
 import notification.PeriodicNotification;
 import notification.CommandNotification.Command;
+import serialization.CommandNotificationSerializer;
 
-public class KafkaProducerNotificationClient implements PeriodicNotificationClient {
+public class KafkaNotificationRegistrationClient implements PeriodicNotificationClient {
 
     private Properties props;
     private boolean init = false;
     private Producer<String, CommandNotification> producer;
     private String topic;
     
-    public KafkaProducerNotificationClient(String topic, Properties props) {
+    public KafkaNotificationRegistrationClient(String topic, Properties props) {
         this.topic = topic;
         this.props = props;
     }
@@ -48,9 +48,9 @@ public class KafkaProducerNotificationClient implements PeriodicNotificationClie
     }
 
     @Override
-    public void addNotification(String id, String message, long period, long delay, TimeUnit unit) {
+    public void addNotification(String id, long startTime, long period, long delay, TimeUnit unit) {
         validateState();
-        Notification notification = PeriodicNotification.builder().id(id).message(message).period(period).initialDelay(delay).periodTimeUnit(unit).initialDelayTimeUnit(unit).build();
+        Notification notification = PeriodicNotification.builder().id(id).period(period).initialDelay(delay).startTime(startTime).timeUnit(unit).build();
         processNotification(new CommandNotification(Command.ADD, notification));
     }
     

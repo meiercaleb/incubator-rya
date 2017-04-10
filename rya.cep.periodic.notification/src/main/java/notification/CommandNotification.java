@@ -1,7 +1,5 @@
 package notification;
 
-import java.util.Optional;
-
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
@@ -26,11 +24,6 @@ public class CommandNotification implements Notification {
     @Override
     public String getId() {
         return notification.getId();
-    }
-
-    @Override
-    public Optional<String> getMessage() {
-        return notification.getMessage();
     }
 
     public Notification getNotification() {

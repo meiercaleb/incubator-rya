@@ -1,7 +1,6 @@
-package notification;
+package serialization;
 
 import java.lang.reflect.Type;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.google.gson.JsonDeserializationContext;
@@ -13,6 +12,7 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
+import notification.PeriodicNotification;
 import notification.PeriodicNotification.Builder;
 
 public class PeriodicNotificationTypeAdapter
@@ -24,17 +24,12 @@ public class PeriodicNotificationTypeAdapter
 
         JsonObject json = arg0.getAsJsonObject();
         String id = json.get("id").getAsString();
+        long start = json.get("startTime").getAsLong();
         long period = json.get("period").getAsLong();
-        TimeUnit periodTimeUnit = TimeUnit.valueOf(json.get("periodTimeUnit").getAsString());
+        TimeUnit periodTimeUnit = TimeUnit.valueOf(json.get("timeUnit").getAsString());
         long initialDelay = json.get("initialDelay").getAsLong();
-        TimeUnit initialDelayTimeUnit = TimeUnit.valueOf(json.get("initialDelayTimeUnit").getAsString());
-        Builder builder = PeriodicNotification.builder().id(id).period(period).periodTimeUnit(periodTimeUnit)
-                .initialDelay(initialDelay).initialDelayTimeUnit(initialDelayTimeUnit);
-
-        JsonElement element = json.get("message");
-        if (element != null) {
-            builder.message(element.getAsString());
-        }
+        Builder builder = PeriodicNotification.builder().id(id).period(period).startTime(start)
+                .initialDelay(initialDelay).timeUnit(periodTimeUnit);
 
         return builder.build();
     }
@@ -44,14 +39,10 @@ public class PeriodicNotificationTypeAdapter
 
         JsonObject result = new JsonObject();
         result.add("id", new JsonPrimitive(arg0.getId()));
+        result.add("startTime", new JsonPrimitive(arg0.getStartTime()));
         result.add("period", new JsonPrimitive(arg0.getPeriod()));
-        result.add("periodTimeUnit", new JsonPrimitive(arg0.getPeriodTimeUnit().name()));
         result.add("initialDelay", new JsonPrimitive(arg0.getInitialDelay()));
-        result.add("initialDelayTimeUnit", new JsonPrimitive(arg0.getInitialDelayTimeUnit().name()));
-        Optional<String> message = arg0.getMessage();
-        if (message.isPresent()) {
-            result.add("message", new JsonPrimitive(message.get()));
-        }
+        result.add("timeUnit", new JsonPrimitive(arg0.getTimeUnit().name()));
 
         return result;
     }

@@ -1,4 +1,4 @@
-package notification;
+package serialization;
 
 import java.lang.reflect.Type;
 
@@ -12,6 +12,9 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import api.Notification;
+import notification.BasicNotification;
+import notification.CommandNotification;
+import notification.PeriodicNotification;
 import notification.CommandNotification.Command;
 
 public class CommandNotificationTypeAdapter

@@ -1,4 +1,4 @@
-package notification;
+package serialization;
 
 import java.io.UnsupportedEncodingException;
 
@@ -12,6 +12,7 @@ import api.Notification;
 import kafka.serializer.Decoder;
 import kafka.serializer.Encoder;
 import kafka.utils.VerifiableProperties;
+import notification.CommandNotification;
 
 public class CommandNotificationSerializer implements Encoder<CommandNotification>, Decoder<CommandNotification> {
 

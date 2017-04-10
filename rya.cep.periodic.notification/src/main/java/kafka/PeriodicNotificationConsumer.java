@@ -3,7 +3,7 @@ package kafka;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import api.PeriodicNotificationCoordinator;
+import api.NotificationCoordinatorExecutor;
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.message.MessageAndMetadata;
@@ -12,11 +12,11 @@ import notification.CommandNotification;
 public class PeriodicNotificationConsumer implements Runnable {
     private KafkaStream<String, CommandNotification> m_stream;
     private int m_threadNumber;
-    private PeriodicNotificationCoordinator coord;
+    private NotificationCoordinatorExecutor coord;
     private static final Logger LOG = LoggerFactory.getLogger(PeriodicNotificationConsumer.class);
 
     public PeriodicNotificationConsumer(KafkaStream<String, CommandNotification> a_stream, int a_threadNumber,
-            PeriodicNotificationCoordinator coord) {
+            NotificationCoordinatorExecutor coord) {
         m_threadNumber = a_threadNumber;
         m_stream = a_stream;
         this.coord = coord;

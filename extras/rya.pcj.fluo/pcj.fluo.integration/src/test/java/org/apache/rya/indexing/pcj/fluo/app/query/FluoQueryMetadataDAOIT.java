@@ -249,11 +249,11 @@ public class FluoQueryMetadataDAOIT extends RyaExportITBase {
                 tx.commit();
             }
 
-            // Read it from the Fluo table.
-            FluoQuery storedQuery = null;
-            try(Snapshot sx = fluoClient.newSnapshot()) {
-                storedQuery = dao.readFluoQuery(sx, originalQuery.getQueryMetadata().getNodeId());
-            }
+        // Read it from the Fluo table.
+        FluoQuery storedQuery = null;
+        try(Snapshot sx = fluoClient.newSnapshot()) {
+            storedQuery = dao.readFluoQuery(sx, originalQuery.getQueryMetadata().get().getNodeId());
+        }
 
             // Ensure the deserialized object is the same as the serialized one.
             assertEquals(originalQuery, storedQuery);

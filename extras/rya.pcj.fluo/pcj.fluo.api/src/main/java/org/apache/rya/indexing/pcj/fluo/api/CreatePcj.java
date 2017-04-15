@@ -146,14 +146,18 @@ public class CreatePcj {
         try (Transaction tx = fluo.newTransaction()) {
             // Write the query's structure to Fluo.
             new FluoQueryMetadataDAO().write(tx, fluoQuery);
+            
+            if (fluoQuery.getQueryMetadata().isPresent()) {
+                // The results of the query are eventually exported to an instance of Rya, so store the Rya ID for the PCJ.
+                final String queryId = fluoQuery.getQueryMetadata().get().getNodeId();
+                tx.set(queryId, FluoQueryColumns.RYA_PCJ_ID, pcjId);
+                tx.set(pcjId, FluoQueryColumns.PCJ_ID_QUERY_ID, queryId);
 
-            // The results of the query are eventually exported to an instance of Rya, so store the Rya ID for the PCJ.
-            final String queryId = fluoQuery.getQueryMetadata().getNodeId();
-            tx.set(queryId, FluoQueryColumns.RYA_PCJ_ID, pcjId);
-            tx.set(pcjId, FluoQueryColumns.PCJ_ID_QUERY_ID, queryId);
-
-            // Flush the changes to Fluo.
-            tx.commit();
+                // Flush the changes to Fluo.
+                tx.commit();
+            } else {
+                throw new IllegalArgumentException("Invalid PCJ query.  Query must have a Projection as its top most node.");
+            }
         }
 
         return fluoQuery;
@@ -228,8 +232,12 @@ public class CreatePcj {
             log.warn("Ignoring IOException thrown while closing the AccumuloRyaQueryEngine used by CreatePCJ.", e);
         }
 
-        // return queryId to the caller for later monitoring from the export.
-        return fluoQuery.getQueryMetadata().getNodeId();
+        if(!fluoQuery.getQueryMetadata().isPresent()) {
+            throw new IllegalArgumentException("Invalid PCJ query.  Query must have a Projection as its top most node.");
+        }
+        
+        return fluoQuery.getQueryMetadata().get().getNodeId();
+        
     }
 
     private static void writeBatch(final FluoClient fluo, final Set<RyaStatement> batch) {

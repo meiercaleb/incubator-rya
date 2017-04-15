@@ -144,6 +144,31 @@ public class RyaSailFactory {
         dao.init();
         return dao;
     }
+    
+    /**
+     * Creates an AccumuloRyaDAO after updating the AccumuloRdfConfiguration so that it is consistent
+     * with the configuration of the RyaInstance that the user is trying to connect to.  This ensures
+     * that user configuration aligns with Rya instance configuration and prevents the creation of 
+     * new index tables based on a user's query configuration.
+     * @param config - user's query configuration
+     * @return - AccumuloRyaDAO with an updated configuration that is consistent with the Rya instance configuration
+     * @throws AccumuloException
+     * @throws AccumuloSecurityException
+     * @throws RyaDAOException
+     */
+    public static AccumuloRyaDAO getAccumuloDAOWithUpdatedConfig(final AccumuloRdfConfiguration config) throws AccumuloException, AccumuloSecurityException, RyaDAOException {
+        
+        String ryaInstance = config.get(RdfCloudTripleStoreConfiguration.CONF_TBL_PREFIX);
+        Objects.requireNonNull(ryaInstance, "RyaInstance or table prefix is missing from configuration."+RdfCloudTripleStoreConfiguration.CONF_TBL_PREFIX);
+        String user = config.get(AccumuloRdfConfiguration.CLOUDBASE_USER);
+        String pswd = config.get(AccumuloRdfConfiguration.CLOUDBASE_PASSWORD);
+        Objects.requireNonNull(user, "Accumulo user name is missing from configuration."+AccumuloRdfConfiguration.CLOUDBASE_USER);
+        Objects.requireNonNull(pswd, "Accumulo user password is missing from configuration."+AccumuloRdfConfiguration.CLOUDBASE_PASSWORD);
+        config.setTableLayoutStrategy( new TablePrefixLayoutStrategy(ryaInstance) );
+        updateAccumuloConfig(config, user, pswd, ryaInstance);
+        
+        return getAccumuloDAO(config);
+    }
 
     public static void updateAccumuloConfig(final AccumuloRdfConfiguration config, final String user, final String pswd, final String ryaInstance) throws AccumuloException, AccumuloSecurityException {
         try {

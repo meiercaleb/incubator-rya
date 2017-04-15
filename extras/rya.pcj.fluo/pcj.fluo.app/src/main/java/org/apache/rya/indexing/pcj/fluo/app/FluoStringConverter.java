@@ -97,6 +97,7 @@ public class FluoStringConverter {
                 // Handle a URI object.
                 final Var var = new Var(name, new URIImpl(valueString));
                 var.setAnonymous(true);
+                var.setConstant(true);
                 return var;
             } else {
                 // Literal value.
@@ -104,6 +105,7 @@ public class FluoStringConverter {
                 final Literal value = new LiteralImpl(valueString, dataType);
                 final Var var = new Var(name, value);
                 var.setAnonymous(true);
+                var.setConstant(true);
                 return var;
             }
         } else {

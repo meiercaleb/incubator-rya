@@ -22,18 +22,21 @@ import static org.junit.Assert.assertEquals;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaType;
 import org.apache.rya.api.domain.RyaURI;
+import org.apache.rya.indexing.pcj.fluo.app.export.kafka.RyaStatementKafkaSerializer;
 import org.junit.Test;
 import org.openrdf.model.vocabulary.XMLSchema;
 
 
-public class RyaStatementSerializerTest {
+public class RyaStatementKafkaSerializerTest {
 
+    private static final RyaStatementKafkaSerializer serializer = new RyaStatementKafkaSerializer();
+    
     @Test
     public void testSerializer() throws Exception {
         RyaStatement statement = new RyaStatement(new RyaURI("uri:123"), new RyaURI("uri:234"), new RyaType(XMLSchema.INTEGER, "345"));
         statement.setColumnVisibility("U&FOUO".getBytes("UTF-8"));
-        byte[] bytes = RyaStatementSerializer.serialize(statement);
-        RyaStatement deserializedStatement = RyaStatementSerializer.deserialize(bytes);
+        byte[] bytes = serializer.toBytes(statement);
+        RyaStatement deserializedStatement = serializer.fromBytes(bytes);
         System.out.println(statement);
         System.out.println(deserializedStatement);
         assertEquals(statement, deserializedStatement);
@@ -42,8 +45,8 @@ public class RyaStatementSerializerTest {
     @Test
     public void testSerializerWithNullColumnVis() throws Exception {
         RyaStatement statement = new RyaStatement(new RyaURI("uri:123"), new RyaURI("uri:234"), new RyaType(XMLSchema.INTEGER, "345"));
-        byte[] bytes = RyaStatementSerializer.serialize(statement);
-        RyaStatement deserializedStatement = RyaStatementSerializer.deserialize(bytes);
+        byte[] bytes = serializer.toBytes(statement);
+        RyaStatement deserializedStatement = serializer.fromBytes(bytes);
         System.out.println(statement);
         System.out.println(deserializedStatement);
         assertEquals(statement, deserializedStatement);

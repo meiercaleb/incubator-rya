@@ -24,13 +24,13 @@ import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalBindingSetExporter
 import com.google.common.base.Optional;
 
 /**
- * Builds instances of {@link IncrementalRyaStatementExporter} using the provided
+ * Builds instances of {@link IncrementalRyaSubGraphExporter} using the provided
  * configurations.
  */
-public interface IncrementalRyaStatementExporterFactory {
+public interface IncrementalRyaSubGraphExporterFactory {
 
     /**
-     * Builds an instance of {@link IncrementalRyaStatementExporter} using the
+     * Builds an instance of {@link IncrementalRyaSubGraphExporter} using the
      * configurations that are provided.
      *
      * @param context - Contains the host application's configuration values
@@ -43,5 +43,5 @@ public interface IncrementalRyaStatementExporterFactory {
      *   using them. This could be because they were improperly formatted,
      *   a required field was missing, or some other configuration based problem.
      */
-    public Optional<IncrementalRyaStatementExporter> build(Context context) throws IncrementalExporterFactoryException, ConfigurationException;
+    public Optional<IncrementalRyaSubGraphExporter> build(Context context) throws IncrementalExporterFactoryException, ConfigurationException;
 }

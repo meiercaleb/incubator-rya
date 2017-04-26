@@ -1,4 +1,5 @@
 package org.apache.rya.indexing.pcj.fluo.app;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +19,7 @@ package org.apache.rya.indexing.pcj.fluo.app;
  * under the License.
  */
 import java.io.UnsupportedEncodingException;
+import java.util.Optional;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.log4j.Logger;
@@ -37,9 +39,9 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
 /**
- * This class projects a VisibilityBindingSet onto a RyaStatement. The Binding {@link Value}s
- * that get projected onto subject, predicate and object are indicated by the
- * names {@link ConstructProjection#getSubjectSourceVar()},
+ * This class projects a VisibilityBindingSet onto a RyaStatement. The Binding
+ * {@link Value}s that get projected onto subject, predicate and object are
+ * indicated by the names {@link ConstructProjection#getSubjectSourceVar()},
  * {@link ConstructProjection#getPredicateSourceVar()} and
  * {@link ConstructProjection#getObjectSourceVar()} and must satisfy standard
  * RDF constraints for RDF subjects, predicates and objects. The purpose of
@@ -50,29 +52,32 @@ import com.google.common.base.Preconditions;
 public class ConstructProjection {
 
     private static final Logger log = Logger.getLogger(ConstructProjection.class);
-    private Var subjectSourceVar;
-    private Var predicateSourceVar;
-    private Var objectSourceVar;
-    public static final String subject = "subject";
-    public static final String predicate = "predicate";
-    public static final String object = "object";
+    private String subjName;
+    private String predName;
+    private String objName;
+    private Optional<Value> subjValue;
+    private Optional<Value> predValue;
+    private Optional<Value> objValue;
+    private Var subjVar;
+    private Var predVar;
+    private Var objVar;
 
     public ConstructProjection(Var subjectVar, Var predicateVar, Var objectVar) {
         Preconditions.checkNotNull(subjectVar);
         Preconditions.checkNotNull(predicateVar);
         Preconditions.checkNotNull(objectVar);
-        if (subjectVar.isConstant()) {
-            Preconditions.checkArgument(subjectVar.getValue() != null);
-        }
-        if (predicateVar.isConstant()) {
-            Preconditions.checkArgument(predicateVar.getValue() != null);
-        }
-        if (objectVar.isConstant()) {
-            Preconditions.checkArgument(objectVar.getValue() != null);
-        }
-        this.subjectSourceVar = subjectVar;
-        this.predicateSourceVar = predicateVar;
-        this.objectSourceVar = objectVar;
+        subjName = subjectVar.getName();
+        predName = predicateVar.getName();
+        objName = objectVar.getName();
+        Preconditions.checkNotNull(subjName);
+        Preconditions.checkNotNull(predName);
+        Preconditions.checkNotNull(objName);
+        this.subjVar = subjectVar;
+        this.predVar = predicateVar;
+        this.objVar = objectVar;
+        subjValue = Optional.ofNullable(subjectVar.getValue());
+        predValue = Optional.ofNullable(predicateVar.getValue());
+        objValue = Optional.ofNullable(objectVar.getValue());
     }
 
     public ConstructProjection(StatementPattern pattern) {
@@ -80,36 +85,36 @@ public class ConstructProjection {
     }
 
     /**
-     * Returns a Var with info about the Value projected onto the RyaStatement subject. 
-     *  If the org.openrdf.query.algebra.Var returned by this method is
+     * Returns a Var with info about the Value projected onto the RyaStatement
+     * subject. If the org.openrdf.query.algebra.Var returned by this method is
      * not constant (as indicated by {@link Var#isConstant()}, then
      * {@link Var#getName()} is the Binding name that gets projected. If the Var
      * is constant, then {@link Var#getValue()} is assigned to the subject
      * 
      * @return {@link org.openrdf.query.algebra.Var} containing info about
-     *         Binding that gets projected onto the subject 
+     *         Binding that gets projected onto the subject
      */
-    public Var getSubjectSourceVar() {
-        return subjectSourceVar;
+    public String getSubjectSourceName() {
+        return subjName;
     }
 
     /**
-     * Returns a Var with info about the Value projected onto the RyaStatement predicate.  
-     * If the org.openrdf.query.algebra.Var returned by this method is
-     * not constant (as indicated by {@link Var#isConstant()}, then
+     * Returns a Var with info about the Value projected onto the RyaStatement
+     * predicate. If the org.openrdf.query.algebra.Var returned by this method
+     * is not constant (as indicated by {@link Var#isConstant()}, then
      * {@link Var#getName()} is the Binding name that gets projected. If the Var
      * is constant, then {@link Var#getValue()} is assigned to the predicate
      * 
      * @return {@link org.openrdf.query.algebra.Var} containing info about
-     *         Binding that gets projected onto the predicate 
+     *         Binding that gets projected onto the predicate
      */
-    public Var getPredicateSourceVar() {
-        return predicateSourceVar;
+    public String getPredicateSourceName() {
+        return predName;
     }
 
     /**
-     * Returns a Var with info about the Value projected onto the RyaStatement object. 
-     * If the org.openrdf.query.algebra.Var returned by this method is
+     * Returns a Var with info about the Value projected onto the RyaStatement
+     * object. If the org.openrdf.query.algebra.Var returned by this method is
      * not constant (as indicated by {@link Var#isConstant()}, then
      * {@link Var#getName()} is the Binding name that gets projected. If the Var
      * is constant, then {@link Var#getValue()} is assigned to the object
@@ -117,22 +122,44 @@ public class ConstructProjection {
      * @return {@link org.openrdf.query.algebra.Var} containing info about
      *         Binding that gets projected onto the object
      */
-    public Var getObjectSourceVar() {
-        return objectSourceVar;
-    }
-    
-    /**
-     * @return SubjectPattern representation of this ConstructProjection containing the
-     * {@link ConstructProjection#subjectSourceVar}, {@link ConstructProjection#predicateSourceVar},
-     * {@link ConstructProjection#objectSourceVar}
-     */
-    public StatementPattern getStatementPatternRepresentation() {
-        return new StatementPattern(subjectSourceVar, predicateSourceVar, objectSourceVar);
+    public String getObjectSourceName() {
+        return objName;
     }
 
     /**
-     * Projects a given BindingSet onto a RyaStatement. The subject, predicate, and
-     * object are extracted from the input VisibilityBindingSet (if the
+     * @return Value set for RyaStatement subject (if present)
+     */
+    public Optional<Value> getSubjValue() {
+        return subjValue;
+    }
+
+    /**
+     * @return Value set for RyaStatement predicate (if present)
+     */
+    public Optional<Value> getPredValue() {
+        return predValue;
+    }
+
+    /**
+     * @return Value set for RyaStatement object (if present)
+     */
+    public Optional<Value> getObjValue() {
+        return objValue;
+    }
+
+    /**
+     * @return SubjectPattern representation of this ConstructProjection
+     *         containing the {@link ConstructProjection#subjectSourceVar},
+     *         {@link ConstructProjection#predicateSourceVar},
+     *         {@link ConstructProjection#objectSourceVar}
+     */
+    public StatementPattern getStatementPatternRepresentation() {
+        return new StatementPattern(subjVar, predVar, objVar);
+    }
+
+    /**
+     * Projects a given BindingSet onto a RyaStatement. The subject, predicate,
+     * and object are extracted from the input VisibilityBindingSet (if the
      * subjectSourceVar, predicateSourceVar, objectSourceVar is resp.
      * non-constant) and from the Var Value itself (if subjectSourceVar,
      * predicateSource, objectSourceVar is resp. constant).
@@ -152,31 +179,31 @@ public class ConstructProjection {
         Value subj = null;
         Value pred = null;
         Value obj = null;
-        if (subjectSourceVar.isConstant()) {
-            subj = subjectSourceVar.getValue();
+        if (subjValue.isPresent()) {
+            subj = subjValue.get();
         } else {
-            subj = vBs.getValue(subjectSourceVar.getName());
+            subj = vBs.getValue(subjName);
         }
-        if (predicateSourceVar.isConstant()) {
-            pred = predicateSourceVar.getValue();
+        if (predValue.isPresent()) {
+            pred = predValue.get();
         } else {
-            pred = vBs.getValue(predicateSourceVar.getName());
+            pred = vBs.getValue(predName);
         }
-        if (objectSourceVar.isConstant()) {
-            obj = objectSourceVar.getValue();
+        if (objValue.isPresent()) {
+            obj = objValue.get();
         } else {
-            obj = vBs.getValue(objectSourceVar.getName());
+            obj = vBs.getValue(objName);
         }
         Preconditions.checkNotNull(subj);
         Preconditions.checkNotNull(pred);
         Preconditions.checkNotNull(obj);
         Preconditions.checkArgument(subj instanceof Resource);
         Preconditions.checkArgument(pred instanceof URI);
-        
+
         RyaURI subjType = RdfToRyaConversions.convertResource((Resource) subj);
         RyaURI predType = RdfToRyaConversions.convertURI((URI) pred);
         RyaType objectType = RdfToRyaConversions.convertValue(obj);
-        
+
         RyaStatement statement = new RyaStatement(subjType, predType, objectType);
         try {
             statement.setColumnVisibility(vBs.getVisibility().getBytes("UTF-8"));
@@ -185,7 +212,7 @@ public class ConstructProjection {
         }
         return statement;
     }
-    
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -194,28 +221,25 @@ public class ConstructProjection {
 
         if (o instanceof ConstructProjection) {
             ConstructProjection projection = (ConstructProjection) o;
-            return new EqualsBuilder().append(this.subjectSourceVar, projection.subjectSourceVar)
-                    .append(this.predicateSourceVar, projection.predicateSourceVar).append(this.objectSourceVar, projection.objectSourceVar)
-                    .isEquals();
+            return new EqualsBuilder().append(this.subjName, projection.subjName).append(this.predName, projection.predName)
+                    .append(this.objName, projection.objName).append(this.subjValue, projection.subjValue)
+                    .append(this.predValue, projection.predValue).append(this.objValue, projection.objValue).isEquals();
         }
         return false;
 
     }
-    
+
     @Override
     public int hashCode() {
-        return Objects.hashCode(this.subjectSourceVar, this.predicateSourceVar, this.objectSourceVar);
+        return Objects.hashCode(this.subjName, this.predName, this.objName, this.subjValue, this.predValue, this.objValue);
     }
-    
+
     @Override
     public String toString() {
-        return new StringBuilder()
-                .append("Construct Projection {\n")
-                .append("   Subject Var: " + subjectSourceVar + "\n")
-                .append("   Predicate Var: " + predicateSourceVar + "\n")
-                .append("   Object Var: " + objectSourceVar + "\n")
-                .append("}")
-                .toString();
+        return new StringBuilder().append("Construct Projection {\n").append("   Subject Name: " + subjName + "\n")
+                .append("   Subject Value: " + subjValue + "\n").append("   Predicate Name: " + predName + "\n")
+                .append("   Predicate Value: " + predValue + "\n").append("   Object Name: " + objName + "\n")
+                .append("   Object Value: " + objValue + "\n").append("}").toString();
     }
 
 }

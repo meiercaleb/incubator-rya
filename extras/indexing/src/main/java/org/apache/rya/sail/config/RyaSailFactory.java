@@ -133,6 +133,19 @@ public class RyaSailFactory {
         return dao;
     }
 
+    /**
+     * Creates AccumuloRyaDAO without updating the AccumuloRdfConfiguration.  This method does not force
+     * the user's configuration to be consistent with the Rya Instance configuration.  As a result, new index
+     * tables might be created when using this method.  This method does not require the {@link AccumuloRyaInstanceDetailsRepository}
+     * to exist.  This is for internal use, backwards compatibility and testing purposes only.  It is recommended that
+     * {@link RyaSailFactory#getAccumuloDAOWithUpdatedConfig(AccumuloRdfConfiguration)} be used for new installations of Rya.
+     * 
+     * @param config - user configuration
+     * @return - AccumuloRyaDAO with Indexers configured according to user's specification
+     * @throws AccumuloException
+     * @throws AccumuloSecurityException
+     * @throws RyaDAOException
+     */
     public static AccumuloRyaDAO getAccumuloDAO(final AccumuloRdfConfiguration config) throws AccumuloException, AccumuloSecurityException, RyaDAOException {
         final Connector connector = ConfigUtils.getConnector(config);
         final AccumuloRyaDAO dao = new AccumuloRyaDAO();
@@ -149,7 +162,9 @@ public class RyaSailFactory {
      * Creates an AccumuloRyaDAO after updating the AccumuloRdfConfiguration so that it is consistent
      * with the configuration of the RyaInstance that the user is trying to connect to.  This ensures
      * that user configuration aligns with Rya instance configuration and prevents the creation of 
-     * new index tables based on a user's query configuration.
+     * new index tables based on a user's query configuration.  This method requires the {@link AccumuloRyaInstanceDetailsRepository}
+     * to exist.
+     * 
      * @param config - user's query configuration
      * @return - AccumuloRyaDAO with an updated configuration that is consistent with the Rya instance configuration
      * @throws AccumuloException

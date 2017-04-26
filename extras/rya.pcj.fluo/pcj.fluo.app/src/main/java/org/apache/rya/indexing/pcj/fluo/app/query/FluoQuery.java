@@ -223,6 +223,7 @@ public class FluoQuery {
             final FluoQuery fluoQuery = (FluoQuery)o;
             return new EqualsBuilder()
                     .append(queryMetadata, fluoQuery.queryMetadata)
+                    .append(constructMetadata,  fluoQuery.constructMetadata)
                     .append(statementPatternMetadata, fluoQuery.statementPatternMetadata)
                     .append(filterMetadata, fluoQuery.filterMetadata)
                     .append(joinMetadata, fluoQuery.joinMetadata)
@@ -237,8 +238,13 @@ public class FluoQuery {
     public String toString() {
         final StringBuilder builder = new StringBuilder();
 
-        if(queryMetadata != null) {
-            builder.append( queryMetadata.toString() );
+        if(queryMetadata.isPresent()) {
+            builder.append( queryMetadata.get().toString() );
+            builder.append("\n");
+        }
+        
+        if(constructMetadata.isPresent()) {
+            builder.append( constructMetadata.get().toString() );
             builder.append("\n");
         }
 
@@ -420,7 +426,8 @@ public class FluoQuery {
          * @return Creates a {@link FluoQuery} using the values that have been supplied to this builder.
          */
         public FluoQuery build() {
-            Preconditions.checkArgument((queryBuilder != null) ^ (constructBuilder != null));
+            Preconditions.checkArgument(
+                    (queryBuilder != null && constructBuilder == null) || (queryBuilder == null && constructBuilder != null));
 
             final ImmutableMap.Builder<String, StatementPatternMetadata> spMetadata = ImmutableMap.builder();
             for(final Entry<String, StatementPatternMetadata.Builder> entry : spBuilders.entrySet()) {

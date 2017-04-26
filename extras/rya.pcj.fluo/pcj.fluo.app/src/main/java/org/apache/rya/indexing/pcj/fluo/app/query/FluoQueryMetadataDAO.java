@@ -505,6 +505,9 @@ public class FluoQueryMetadataDAO {
             final ConstructQueryMetadata.Builder constructBuilder = readConstructQueryMetadataBuilder(sx, childNodeId);
             Preconditions.checkArgument(!builder.getQueryBuilder().isPresent());
             builder.setConstructQueryMetadata(constructBuilder);
+            
+            // Add it's child's metadata.
+            addChildMetadata(sx, builder, constructBuilder.build().getChildNodeId());
             break;
 
         case AGGREGATION:

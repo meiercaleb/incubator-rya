@@ -1,4 +1,5 @@
 package org.apache.rya.indexing.pcj.fluo.app.observers;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,6 +20,7 @@ package org.apache.rya.indexing.pcj.fluo.app.observers;
  */
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.fluo.api.client.TransactionBase;
@@ -28,62 +30,59 @@ import org.apache.fluo.api.observer.AbstractObserver;
 import org.apache.log4j.Logger;
 import org.apache.rya.accumulo.utils.VisibilitySimplifier;
 import org.apache.rya.api.domain.RyaStatement;
-import org.apache.rya.indexing.pcj.fluo.app.RyaStatementSerializer;
+import org.apache.rya.api.domain.RyaSubGraph;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalBindingSetExporterFactory.IncrementalExporterFactoryException;
-import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalRyaStatementExporter;
-import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalRyaStatementExporterFactory;
-import org.apache.rya.indexing.pcj.fluo.app.export.rya.RyaStatementExporterFactory;
+import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalRyaSubGraphExporter;
+import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalRyaSubGraphExporterFactory;
+import org.apache.rya.indexing.pcj.fluo.app.export.kafka.KafkaRyaSubGraphExporterFactory;
+import org.apache.rya.indexing.pcj.fluo.app.export.kafka.RyaSubGraphKafkaSerializer;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * Monitors the Column {@link FluoQueryColumns#CONSTRUCT_STATEMENTS} for new Construct
- * Query {@link RyaStatement}s and exports the results using the {@link IncrementalRyaStatementExporter}s
- * that are registered with this Observer.
+ * Monitors the Column {@link FluoQueryColumns#CONSTRUCT_STATEMENTS} for new
+ * Construct Query {@link RyaStatement}s and exports the results using the
+ * {@link IncrementalRyaSubGraphExporter}s that are registered with this
+ * Observer.
  *
  */
 public class ConstructQueryResultObserver extends AbstractObserver {
 
     private static final Logger log = Logger.getLogger(ConstructQueryResultObserver.class);
-    
-    /**
-     * Simplifies Visibility expressions prior to exporting results.
-     */
-    private static final VisibilitySimplifier SIMPLIFIER = new VisibilitySimplifier();
+    private static final RyaSubGraphKafkaSerializer serializer = new RyaSubGraphKafkaSerializer();
 
     /**
-     * We expect to see the same expressions a lot, so we cache the simplified forms.
+     * We expect to see the same expressions a lot, so we cache the simplified
+     * forms.
      */
     private final Map<String, String> simplifiedVisibilities = new HashMap<>();
 
     /**
      * Builders for each type of result exporter we support.
      */
-    private static final ImmutableSet<IncrementalRyaStatementExporterFactory> factories =
-            ImmutableSet.<IncrementalRyaStatementExporterFactory>builder()
-                .add(new RyaStatementExporterFactory())
-                .build();
+    private static final ImmutableSet<IncrementalRyaSubGraphExporterFactory> factories = ImmutableSet
+            .<IncrementalRyaSubGraphExporterFactory> builder().add(new KafkaRyaSubGraphExporterFactory()).build();
 
     /**
      * The exporters that are configured.
      */
-    private ImmutableSet<IncrementalRyaStatementExporter> exporters = null;
+    private ImmutableSet<IncrementalRyaSubGraphExporter> exporters = null;
 
     /**
      * Before running, determine which exporters are configured and set them up.
      */
     @Override
     public void init(final Context context) {
-        final ImmutableSet.Builder<IncrementalRyaStatementExporter> exportersBuilder = ImmutableSet.builder();
+        final ImmutableSet.Builder<IncrementalRyaSubGraphExporter> exportersBuilder = ImmutableSet.builder();
 
-        for(final IncrementalRyaStatementExporterFactory builder : factories) {
+        for (final IncrementalRyaSubGraphExporterFactory builder : factories) {
             try {
                 log.debug("ConstructQueryResultObserver.init(): for each exportersBuilder=" + builder);
 
-                final Optional<IncrementalRyaStatementExporter> exporter = builder.build(context);
-                if(exporter.isPresent()) {
+                final Optional<IncrementalRyaSubGraphExporter> exporter = builder.build(context);
+                if (exporter.isPresent()) {
                     exportersBuilder.add(exporter.get());
                 }
             } catch (final IncrementalExporterFactoryException e) {
@@ -94,8 +93,6 @@ public class ConstructQueryResultObserver extends AbstractObserver {
         exporters = exportersBuilder.build();
     }
 
-    
-    
     @Override
     public ObservedColumn getObservedColumn() {
         return new ObservedColumn(FluoQueryColumns.CONSTRUCT_STATEMENTS, NotificationType.STRONG);
@@ -103,25 +100,32 @@ public class ConstructQueryResultObserver extends AbstractObserver {
 
     @Override
     public void process(TransactionBase tx, Bytes row, Column col) throws Exception {
-        Bytes bytes = tx.get(row,col);
-        RyaStatement statement = RyaStatementSerializer.deserialize(bytes.toArray());
-        statement = simplifyVisibilities(statement);
-        
-        for(IncrementalRyaStatementExporter exporter: exporters) {
-            exporter.export(row.toString(), statement);
+        Bytes bytes = tx.get(row, col);
+        RyaSubGraph subgraph = serializer.fromBytes(bytes.toArray());
+        List<RyaStatement> statements = subgraph.getStatements();
+        if (statements.size() > 0) {
+            byte[] visibility = statements.get(0).getColumnVisibility();
+            visibility = simplifyVisibilities(visibility);
+            for(RyaStatement statement: statements) {
+                statement.setColumnVisibility(visibility);
+            }
+            subgraph.setStatements(statements);
+
+            for (IncrementalRyaSubGraphExporter exporter : exporters) {
+                exporter.export(row.toString(), subgraph);
+            }
         }
     }
 
-    private RyaStatement simplifyVisibilities(RyaStatement statement) throws UnsupportedEncodingException {
-        // Simplify the result's visibilities and cache new simplified visibilities
-        byte[] visibilityBytes = statement.getColumnVisibility();
+    private byte[] simplifyVisibilities(byte[] visibilityBytes) throws UnsupportedEncodingException {
+        // Simplify the result's visibilities and cache new simplified
+        // visibilities
         String visibility = new String(visibilityBytes, "UTF-8");
-        if(!simplifiedVisibilities.containsKey(visibility)) {
-            String simplified = SIMPLIFIER.simplify(visibility);
+        if (!simplifiedVisibilities.containsKey(visibility)) {
+            String simplified = VisibilitySimplifier.simplify(visibility);
             simplifiedVisibilities.put(visibility, simplified);
         }
-        statement.setColumnVisibility(simplifiedVisibilities.get(visibility).getBytes("UTF-8"));
-        return statement;
+        return simplifiedVisibilities.get(visibility).getBytes("UTF-8");
     }
 
 }

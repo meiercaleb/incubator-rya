@@ -128,19 +128,19 @@ public class FluoStringConverter {
 
         final Var subjVar = sp.getSubjectVar();
         String subj = subjVar.getName();
-        if(subjVar.isConstant()) {
+        if(subjVar.getValue() != null) {
             subj = subj + TYPE_DELIM + URI_TYPE;
         }
 
         final Var predVar = sp.getPredicateVar();
         String pred = predVar.getName();
-        if(predVar.isConstant()) {
+        if(predVar.getValue() != null) {
             pred = pred + TYPE_DELIM + URI_TYPE;
         }
 
         final Var objVar = sp.getObjectVar();
         String obj = objVar.getName();
-        if (objVar.isConstant()) {
+        if (objVar.getValue() != null) {
             final RyaType rt = RdfToRyaConversions.convertValue(objVar.getValue());
             obj =  obj + TYPE_DELIM + rt.getDataType().stringValue();
         }

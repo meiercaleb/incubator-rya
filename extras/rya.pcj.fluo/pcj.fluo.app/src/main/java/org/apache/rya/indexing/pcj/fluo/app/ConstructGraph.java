@@ -69,8 +69,12 @@ public class ConstructGraph {
      */
     public Set<RyaStatement> createGraphFromBindingSet(VisibilityBindingSet bs) {
         Set<RyaStatement> bSets = new HashSet<>();
+        long ts = System.currentTimeMillis();
         for(ConstructProjection projection: projections) {
-            bSets.add(projection.projectBindingSet(bs));
+            RyaStatement statement = projection.projectBindingSet(bs);
+            //ensure that all RyaStatements in graph have the same timestamp
+            statement.setTimestamp(ts);
+            bSets.add(statement);
         }
         return bSets;
     }

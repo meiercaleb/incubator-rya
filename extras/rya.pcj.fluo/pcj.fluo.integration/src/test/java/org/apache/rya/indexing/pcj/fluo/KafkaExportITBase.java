@@ -45,6 +45,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
+import org.apache.rya.accumulo.AccumuloRyaDAO;
 import org.apache.rya.api.client.Install.InstallConfiguration;
 import org.apache.rya.api.client.RyaClient;
 import org.apache.rya.api.client.accumulo.AccumuloConnectionDetails;
@@ -80,7 +81,8 @@ import kafka.utils.ZkUtils;
 import kafka.zk.EmbeddedZookeeper;
 
 /**
- * The base Integration Test class used for Fluo applications that export to a Kakfa topic.
+ * The base Integration Test class used for Fluo applications that export to a
+ * Kakfa topic.
  */
 public class KafkaExportITBase extends AccumuloExportITBase {
 
@@ -94,8 +96,10 @@ public class KafkaExportITBase extends AccumuloExportITBase {
     private EmbeddedZookeeper zkServer;
     private ZkClient zkClient;
 
-    // The Rya instance statements are written to that will be fed into the Fluo app.
+    // The Rya instance statements are written to that will be fed into the Fluo
+    // app.
     private RyaSailRepository ryaSailRepo = null;
+    private AccumuloRyaDAO dao = null;
 
     /**
      * Add info about the Kafka queue/topic to receive the export.
@@ -112,7 +116,8 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         observers.add(new ObserverSpecification(FilterObserver.class.getName()));
         observers.add(new ObserverSpecification(AggregationObserver.class.getName()));
 
-        // Configure the export observer to export new PCJ results to the mini accumulo cluster.
+        // Configure the export observer to export new PCJ results to the mini
+        // accumulo cluster.
         final HashMap<String, String> exportParams = new HashMap<>();
 
         final KafkaExportParameters kafkaParams = new KafkaExportParameters(exportParams);
@@ -122,7 +127,8 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         final Properties producerConfig = new Properties();
         producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BROKERHOST + ":" + BROKERPORT);
         producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
-        producerConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.rya.indexing.pcj.fluo.app.export.kafka.KryoVisibilityBindingSetSerializer");
+        producerConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                "org.apache.rya.indexing.pcj.fluo.app.export.kafka.KryoVisibilityBindingSetSerializer");
         kafkaParams.addAllProducerConfig(producerConfig);
 
         final ObserverSpecification exportObserverConfig = new ObserverSpecification(QueryResultObserver.class.getName(), exportParams);
@@ -167,17 +173,14 @@ public class KafkaExportITBase extends AccumuloExportITBase {
 
         // Uninstall the instance of Rya.
         final RyaClient ryaClient = AccumuloRyaClientFactory.build(
-                new AccumuloConnectionDetails(
-                    ACCUMULO_USER,
-                    ACCUMULO_PASSWORD.toCharArray(),
-                    instanceName,
-                    zookeepers),
+                new AccumuloConnectionDetails(ACCUMULO_USER, ACCUMULO_PASSWORD.toCharArray(), instanceName, zookeepers),
                 super.getAccumuloConnector());
 
         ryaClient.getUninstall().uninstall(RYA_INSTANCE_NAME);
 
         // Shutdown the repo.
         ryaSailRepo.shutDown();
+        dao.destroy();
     }
 
     private void installRyaInstance() throws Exception {
@@ -187,26 +190,18 @@ public class KafkaExportITBase extends AccumuloExportITBase {
 
         // Install the Rya instance to the mini accumulo cluster.
         final RyaClient ryaClient = AccumuloRyaClientFactory.build(
-                new AccumuloConnectionDetails(
-                    ACCUMULO_USER,
-                    ACCUMULO_PASSWORD.toCharArray(),
-                    instanceName,
-                    zookeepers),
+                new AccumuloConnectionDetails(ACCUMULO_USER, ACCUMULO_PASSWORD.toCharArray(), instanceName, zookeepers),
                 super.getAccumuloConnector());
 
-        ryaClient.getInstall().install(RYA_INSTANCE_NAME, InstallConfiguration.builder()
-                .setEnableTableHashPrefix(false)
-                .setEnableFreeTextIndex(false)
-                .setEnableEntityCentricIndex(false)
-                .setEnableGeoIndex(false)
-                .setEnableTemporalIndex(false)
-                .setEnablePcjIndex(true)
-                .setFluoPcjAppName( super.getFluoConfiguration().getApplicationName() )
-                .build());
+        ryaClient.getInstall().install(RYA_INSTANCE_NAME,
+                InstallConfiguration.builder().setEnableTableHashPrefix(false).setEnableFreeTextIndex(false)
+                        .setEnableEntityCentricIndex(false).setEnableGeoIndex(false).setEnableTemporalIndex(false).setEnablePcjIndex(true)
+                        .setFluoPcjAppName(super.getFluoConfiguration().getApplicationName()).build());
 
         // Connect to the Rya instance that was just installed.
         final AccumuloRdfConfiguration conf = makeConfig(instanceName, zookeepers);
         final Sail sail = RyaSailFactory.getInstance(conf);
+        dao = RyaSailFactory.getAccumuloDAOWithUpdatedConfig(conf);
         ryaSailRepo = new RyaSailRepository(sail);
     }
 
@@ -221,15 +216,12 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         conf.setAccumuloZookeepers(super.getAccumuloConnector().getInstance().getZooKeepers());
         conf.setAuths("");
 
-
         // PCJ configuration information.
         conf.set(ConfigUtils.USE_PCJ, "true");
         conf.set(ConfigUtils.USE_PCJ_UPDATER_INDEX, "true");
         conf.set(ConfigUtils.FLUO_APP_NAME, super.getFluoConfiguration().getApplicationName());
-        conf.set(ConfigUtils.PCJ_STORAGE_TYPE,
-                PrecomputedJoinIndexerConfig.PrecomputedJoinStorageType.ACCUMULO.toString());
-        conf.set(ConfigUtils.PCJ_UPDATER_TYPE,
-                PrecomputedJoinIndexerConfig.PrecomputedJoinUpdaterType.FLUO.toString());
+        conf.set(ConfigUtils.PCJ_STORAGE_TYPE, PrecomputedJoinIndexerConfig.PrecomputedJoinStorageType.ACCUMULO.toString());
+        conf.set(ConfigUtils.PCJ_UPDATER_TYPE, PrecomputedJoinIndexerConfig.PrecomputedJoinUpdaterType.FLUO.toString());
 
         conf.setDisplayQueryPlan(true);
 
@@ -237,10 +229,19 @@ public class KafkaExportITBase extends AccumuloExportITBase {
     }
 
     /**
-     * @return A {@link RyaSailRepository} that is connected to the Rya instance that statements are loaded into.
+     * @return A {@link RyaSailRepository} that is connected to the Rya instance
+     *         that statements are loaded into.
      */
     protected RyaSailRepository getRyaSailRepository() throws Exception {
         return ryaSailRepo;
+    }
+
+    /**
+     * @return A {@link AccumuloRyaDAO} so that RyaStatements with distinct
+     *         visibilities can be added to the Rya Instance
+     */
+    protected AccumuloRyaDAO getRyaDAO() {
+        return dao;
     }
 
     /**
@@ -269,7 +270,7 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         // setup producer
         final Properties producerProps = new Properties();
         producerProps.setProperty("bootstrap.servers", BROKERHOST + ":" + BROKERPORT);
-        producerProps.setProperty("key.serializer","org.apache.kafka.common.serialization.IntegerSerializer");
+        producerProps.setProperty("key.serializer", "org.apache.kafka.common.serialization.IntegerSerializer");
         producerProps.setProperty("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
         final KafkaProducer<Integer, byte[]> producer = new KafkaProducer<>(producerProps);
 
@@ -278,7 +279,7 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         consumerProps.setProperty("bootstrap.servers", BROKERHOST + ":" + BROKERPORT);
         consumerProps.setProperty("group.id", "group0");
         consumerProps.setProperty("client.id", "consumer0");
-        consumerProps.setProperty("key.deserializer","org.apache.kafka.common.serialization.IntegerDeserializer");
+        consumerProps.setProperty("key.deserializer", "org.apache.kafka.common.serialization.IntegerDeserializer");
         consumerProps.setProperty("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
 
         // to make sure the consumer starts from the beginning of the topic
@@ -308,8 +309,10 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         consumerProps.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BROKERHOST + ":" + BROKERPORT);
         consumerProps.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "group0");
         consumerProps.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, "consumer0");
-        consumerProps.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.IntegerDeserializer");
-        consumerProps.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.rya.indexing.pcj.fluo.app.export.kafka.KryoVisibilityBindingSetSerializer");
+        consumerProps.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                "org.apache.kafka.common.serialization.IntegerDeserializer");
+        consumerProps.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                "org.apache.rya.indexing.pcj.fluo.app.export.kafka.KryoVisibilityBindingSetSerializer");
 
         // to make sure the consumer starts from the beginning of the topic
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -318,8 +321,7 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         consumer.subscribe(Arrays.asList(TopicName));
         return consumer;
     }
-    
-    
+
     protected String loadData(final String sparql, final Collection<Statement> statements) throws Exception {
         requireNonNull(sparql);
         requireNonNull(statements);
@@ -328,11 +330,8 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         final Instance accInstance = super.getAccumuloConnector().getInstance();
         final Connector accumuloConn = super.getAccumuloConnector();
 
-        final RyaClient ryaClient = AccumuloRyaClientFactory.build(new AccumuloConnectionDetails(
-                ACCUMULO_USER,
-                ACCUMULO_PASSWORD.toCharArray(),
-                accInstance.getInstanceName(),
-                accInstance.getZooKeepers()), accumuloConn);
+        final RyaClient ryaClient = AccumuloRyaClientFactory.build(new AccumuloConnectionDetails(ACCUMULO_USER,
+                ACCUMULO_PASSWORD.toCharArray(), accInstance.getInstanceName(), accInstance.getZooKeepers()), accumuloConn);
 
         final String pcjId = ryaClient.getCreatePCJ().createPCJ(RYA_INSTANCE_NAME, sparql);
 
@@ -349,4 +348,5 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         // The PCJ Id is the topic name the results will be written to.
         return pcjId;
     }
+
 }

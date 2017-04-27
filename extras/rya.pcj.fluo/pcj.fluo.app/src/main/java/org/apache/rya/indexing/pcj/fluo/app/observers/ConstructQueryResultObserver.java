@@ -20,8 +20,8 @@ package org.apache.rya.indexing.pcj.fluo.app.observers;
  */
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.data.Bytes;
@@ -35,7 +35,7 @@ import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalBindingSetExporter
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalRyaSubGraphExporter;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalRyaSubGraphExporterFactory;
 import org.apache.rya.indexing.pcj.fluo.app.export.kafka.KafkaRyaSubGraphExporterFactory;
-import org.apache.rya.indexing.pcj.fluo.app.export.kafka.RyaSubGraphKafkaSerializer;
+import org.apache.rya.indexing.pcj.fluo.app.export.kafka.RyaSubGraphKafkaSerDe;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 
 import com.google.common.base.Optional;
@@ -51,7 +51,7 @@ import com.google.common.collect.ImmutableSet;
 public class ConstructQueryResultObserver extends AbstractObserver {
 
     private static final Logger log = Logger.getLogger(ConstructQueryResultObserver.class);
-    private static final RyaSubGraphKafkaSerializer serializer = new RyaSubGraphKafkaSerializer();
+    private static final RyaSubGraphKafkaSerDe serializer = new RyaSubGraphKafkaSerDe();
 
     /**
      * We expect to see the same expressions a lot, so we cache the simplified
@@ -102,9 +102,9 @@ public class ConstructQueryResultObserver extends AbstractObserver {
     public void process(TransactionBase tx, Bytes row, Column col) throws Exception {
         Bytes bytes = tx.get(row, col);
         RyaSubGraph subgraph = serializer.fromBytes(bytes.toArray());
-        List<RyaStatement> statements = subgraph.getStatements();
+        Set<RyaStatement> statements = subgraph.getStatements();
         if (statements.size() > 0) {
-            byte[] visibility = statements.get(0).getColumnVisibility();
+            byte[] visibility = statements.iterator().next().getColumnVisibility();
             visibility = simplifyVisibilities(visibility);
             for(RyaStatement statement: statements) {
                 statement.setColumnVisibility(visibility);

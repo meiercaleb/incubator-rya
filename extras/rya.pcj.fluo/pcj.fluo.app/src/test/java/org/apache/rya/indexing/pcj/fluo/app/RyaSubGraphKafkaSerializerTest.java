@@ -8,13 +8,13 @@ import org.apache.rya.api.domain.RyaSubGraph;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaType;
 import org.apache.rya.api.domain.RyaURI;
-import org.apache.rya.indexing.pcj.fluo.app.export.kafka.RyaSubGraphKafkaSerializer;
+import org.apache.rya.indexing.pcj.fluo.app.export.kafka.RyaSubGraphKafkaSerDe;
 import org.junit.Test;
 import org.openrdf.model.vocabulary.XMLSchema;
 
-public class RyaBundleKafkaSerializerTest {
+public class RyaSubGraphKafkaSerializerTest {
 
-    private static final RyaSubGraphKafkaSerializer serializer = new RyaSubGraphKafkaSerializer();
+    private static final RyaSubGraphKafkaSerDe serializer = new RyaSubGraphKafkaSerDe();
     
     @Test
     public void serializationTestWithURI() {

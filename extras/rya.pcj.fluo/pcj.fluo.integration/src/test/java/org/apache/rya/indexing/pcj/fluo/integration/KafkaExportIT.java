@@ -421,6 +421,7 @@ public class KafkaExportIT extends KafkaExportITBase {
 
         // Verify the end results of the query match the expected results.
         final Set<VisibilityBindingSet> results = readGroupedResults(pcjId, new VariableOrder("type", "location"));
+        System.out.println(results);
         assertEquals(expectedResults, results);
     }
 

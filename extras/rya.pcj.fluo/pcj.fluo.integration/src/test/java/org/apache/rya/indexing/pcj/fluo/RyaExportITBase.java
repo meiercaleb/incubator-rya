@@ -102,7 +102,7 @@ public class RyaExportITBase extends AccumuloExportITBase {
         kafkaParams.setExportToKafka(false);
 
         final ObserverSpecification constructExportObserverConfig = new ObserverSpecification(ConstructQueryResultObserver.class.getName(),
-                new HashMap<>());
+                exportParams);
         observers.add(constructExportObserverConfig);
 
         // Add the observers to the Fluo Configuration.

@@ -1,5 +1,7 @@
 package org.apache.rya.indexing.pcj.fluo.app.observers;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,6 +21,7 @@ package org.apache.rya.indexing.pcj.fluo.app.observers;
  * under the License.
  */
 import java.io.UnsupportedEncodingException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -29,8 +32,12 @@ import org.apache.fluo.api.data.Column;
 import org.apache.fluo.api.observer.AbstractObserver;
 import org.apache.log4j.Logger;
 import org.apache.rya.accumulo.utils.VisibilitySimplifier;
+import org.apache.rya.api.RdfCloudTripleStoreConstants.TABLE_LAYOUT;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaSubGraph;
+import org.apache.rya.api.resolver.triple.TripleRow;
+import org.apache.rya.api.resolver.triple.TripleRowResolverException;
+import org.apache.rya.api.resolver.triple.impl.WholeRowTripleResolver;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalBindingSetExporterFactory.IncrementalExporterFactoryException;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalRyaSubGraphExporter;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalRyaSubGraphExporterFactory;
@@ -50,6 +57,7 @@ import com.google.common.collect.ImmutableSet;
  */
 public class ConstructQueryResultObserver extends AbstractObserver {
 
+    private static final WholeRowTripleResolver TRIPLE_RESOLVER = new WholeRowTripleResolver();
     private static final Logger log = Logger.getLogger(ConstructQueryResultObserver.class);
     private static final RyaSubGraphKafkaSerDe serializer = new RyaSubGraphKafkaSerDe();
 
@@ -115,6 +123,8 @@ public class ConstructQueryResultObserver extends AbstractObserver {
                 exporter.export(row.toString(), subgraph);
             }
         }
+        //add generated triples back into Fluo for chaining queries together
+        insertTriples(tx, subgraph.getStatements());
     }
 
     private byte[] simplifyVisibilities(byte[] visibilityBytes) throws UnsupportedEncodingException {
@@ -126,6 +136,33 @@ public class ConstructQueryResultObserver extends AbstractObserver {
             simplifiedVisibilities.put(visibility, simplified);
         }
         return simplifiedVisibilities.get(visibility).getBytes("UTF-8");
+    }
+    
+    private void insertTriples(TransactionBase tx, final Collection<RyaStatement> triples) {
+
+        for (final RyaStatement triple : triples) {
+            Optional<byte[]> visibility = Optional.fromNullable(triple.getColumnVisibility());
+            try {
+                tx.set(Bytes.of(spoFormat(triple)), FluoQueryColumns.TRIPLES, Bytes.of(visibility.or(new byte[0])));
+            } catch (final TripleRowResolverException e) {
+                log.error("Could not convert a Triple into the SPO format: " + triple);
+            }
+        }
+    }
+    
+
+    /**
+     * Converts a triple into a byte[] holding the Rya SPO representation of it.
+     *
+     * @param triple - The triple to convert. (not null)
+     * @return The Rya SPO representation of the triple.
+     * @throws TripleRowResolverException The triple could not be converted.
+     */
+    public static byte[] spoFormat(final RyaStatement triple) throws TripleRowResolverException {
+        checkNotNull(triple);
+        final Map<TABLE_LAYOUT, TripleRow> serialized = TRIPLE_RESOLVER.serialize(triple);
+        final TripleRow spoRow = serialized.get(TABLE_LAYOUT.SPO);
+        return spoRow.getRow();
     }
 
 }

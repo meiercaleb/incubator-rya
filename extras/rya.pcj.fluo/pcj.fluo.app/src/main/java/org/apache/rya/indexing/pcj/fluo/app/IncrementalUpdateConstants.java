@@ -26,6 +26,7 @@ public class IncrementalUpdateConstants {
     public static final String NODEID_BS_DELIM = "<<:>>";
     public static final String JOIN_DELIM = "<:>J<:>";
     public static final String TYPE_DELIM = "<<~>>";
+    public static final String BNODE_PREFIX = "BNode";
 
     //to be used in construction of id for each node
     public static final String SP_PREFIX = "STATEMENT_PATTERN";

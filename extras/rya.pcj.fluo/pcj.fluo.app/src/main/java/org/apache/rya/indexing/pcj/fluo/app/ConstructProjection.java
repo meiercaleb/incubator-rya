@@ -19,7 +19,12 @@ package org.apache.rya.indexing.pcj.fluo.app;
  * under the License.
  */
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.log4j.Logger;
@@ -28,9 +33,11 @@ import org.apache.rya.api.domain.RyaType;
 import org.apache.rya.api.domain.RyaURI;
 import org.apache.rya.api.resolver.RdfToRyaConversions;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
+import org.openrdf.model.BNode;
 import org.openrdf.model.Resource;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
+import org.openrdf.model.impl.BNodeImpl;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.algebra.StatementPattern;
 import org.openrdf.query.algebra.Var;
@@ -75,7 +82,11 @@ public class ConstructProjection {
         this.subjVar = subjectVar;
         this.predVar = predicateVar;
         this.objVar = objectVar;
-        subjValue = Optional.ofNullable(subjectVar.getValue());
+        if(subjName.startsWith("-anon-") && subjectVar.getValue() == null) {
+            subjValue = Optional.of(new BNodeImpl(UUID.randomUUID().toString()));
+        } else {
+            subjValue = Optional.ofNullable(subjectVar.getValue());
+        }
         predValue = Optional.ofNullable(predicateVar.getValue());
         objValue = Optional.ofNullable(objectVar.getValue());
     }
@@ -146,6 +157,7 @@ public class ConstructProjection {
     public Optional<Value> getObjValue() {
         return objValue;
     }
+    
 
     /**
      * @return SubjectPattern representation of this ConstructProjection
@@ -169,31 +181,24 @@ public class ConstructProjection {
      *            - Visibility BindingSet that gets projected onto an RDF
      *            Statement BindingSet with Binding names subject, predicate and
      *            object
+     * @param   bNodeMap - Optional Map used to pass {@link BNode}s for given variable names into
+     *          multiple {@link ConstructProjection}s.  This allows a ConstructGraph to create
+     *          RyaStatements with the same BNode for a given variable name across multiple ConstructProjections.
      * @return - RyaStatement whose values are determined by
      *         {@link ConstructProjection#getSubjectSourceVar()},
      *         {@link ConstructProjection#getPredicateSourceVar()},
      *         {@link ConstructProjection#getObjectSourceVar()}.
      * 
      */
-    public RyaStatement projectBindingSet(VisibilityBindingSet vBs) {
-        Value subj = null;
-        Value pred = null;
-        Value obj = null;
-        if (subjValue.isPresent()) {
-            subj = subjValue.get();
-        } else {
-            subj = vBs.getValue(subjName);
-        }
-        if (predValue.isPresent()) {
-            pred = predValue.get();
-        } else {
-            pred = vBs.getValue(predName);
-        }
-        if (objValue.isPresent()) {
-            obj = objValue.get();
-        } else {
-            obj = vBs.getValue(objName);
-        }
+    public RyaStatement projectBindingSet(VisibilityBindingSet vBs, Map<String, BNode> bNodes) {
+     
+        Preconditions.checkNotNull(vBs);
+        Preconditions.checkNotNull(bNodes);
+        
+        Value subj = getValue(subjName, subjValue, vBs, bNodes);
+        Value pred = getValue(predName, predValue, vBs, bNodes);
+        Value obj = getValue(objName, objValue, vBs, bNodes);
+        
         Preconditions.checkNotNull(subj);
         Preconditions.checkNotNull(pred);
         Preconditions.checkNotNull(obj);
@@ -211,6 +216,21 @@ public class ConstructProjection {
             log.trace("Unable to decode column visibility.  RyaStatement being created without column visibility.");
         }
         return statement;
+    }
+    
+    private Value getValue(String name, Optional<Value> optValue, VisibilityBindingSet bs, Map<String, BNode> bNodes) {
+        Value returnValue = null;
+        if (optValue.isPresent()) {
+            Value tempValue = optValue.get();
+            if(tempValue instanceof BNode) {
+                returnValue = bNodes.get(name);
+            } else {
+                returnValue = optValue.get();
+            }
+        } else {
+            returnValue = bs.getValue(name);
+        }
+        return returnValue;
     }
 
     @Override

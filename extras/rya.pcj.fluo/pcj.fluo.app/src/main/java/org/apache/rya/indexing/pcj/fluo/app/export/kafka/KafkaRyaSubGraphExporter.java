@@ -31,7 +31,7 @@ public class KafkaRyaSubGraphExporter implements IncrementalRyaSubGraphExporter 
         checkNotNull(subGraph);
         try {
             // Send the result to the topic whose name matches the PCJ ID.
-            final ProducerRecord<String, RyaSubGraph> rec = new ProducerRecord<>(constructID, subGraph);
+            final ProducerRecord<String, RyaSubGraph> rec = new ProducerRecord<>(subGraph.getId(), subGraph);
             final Future<RecordMetadata> future = producer.send(rec);
 
             // Don't let the export return until the result has been written to the topic. Otherwise we may lose results.

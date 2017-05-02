@@ -18,12 +18,20 @@ package org.apache.rya.indexing.pcj.fluo.app;
  * under the License.
  */
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
+import org.openrdf.model.BNode;
+import org.openrdf.model.Value;
+import org.openrdf.model.impl.BNodeImpl;
 import org.openrdf.query.algebra.StatementPattern;
+import org.openrdf.query.algebra.Var;
 
 import com.google.common.base.Preconditions;
 
@@ -37,11 +45,13 @@ public class ConstructGraph {
 
 
     private Set<ConstructProjection> projections;
+    private Set<String> bNodeNames;
     
     public ConstructGraph(Set<ConstructProjection> projections) {
         Preconditions.checkNotNull(projections);
         Preconditions.checkArgument(projections.size() > 0);
         this.projections = projections;
+        this.bNodeNames = getBNodeNames(projections);
     }
     
     public ConstructGraph(Collection<StatementPattern> patterns) {
@@ -52,6 +62,26 @@ public class ConstructGraph {
             projections.add(new ConstructProjection(pattern));
         }
         this.projections = projections;
+        this.bNodeNames = getBNodeNames(projections);
+    }
+    
+    private Set<String> getBNodeNames(Set<ConstructProjection> projections) {
+        Set<String> bNodeNames = new HashSet<>();
+        for (ConstructProjection projection : projections) {
+            Optional<Value> optVal = projection.getSubjValue();
+            if (optVal.isPresent() && optVal.get() instanceof BNode) {
+                bNodeNames.add(projection.getSubjectSourceName());
+            }
+        }
+        return bNodeNames;
+    }
+    
+    private Map<String, BNode> getBNodeMap() {
+        Map<String, BNode> bNodeMap = new HashMap<>();
+        for(String name: bNodeNames) {
+            bNodeMap.put(name, new BNodeImpl(UUID.randomUUID().toString()));
+        }
+        return bNodeMap;
     }
     
     /**
@@ -70,8 +100,9 @@ public class ConstructGraph {
     public Set<RyaStatement> createGraphFromBindingSet(VisibilityBindingSet bs) {
         Set<RyaStatement> bSets = new HashSet<>();
         long ts = System.currentTimeMillis();
+        Map<String, BNode> bNodes = getBNodeMap();
         for(ConstructProjection projection: projections) {
-            RyaStatement statement = projection.projectBindingSet(bs);
+            RyaStatement statement = projection.projectBindingSet(bs, bNodes);
             //ensure that all RyaStatements in graph have the same timestamp
             statement.setTimestamp(ts);
             bSets.add(statement);

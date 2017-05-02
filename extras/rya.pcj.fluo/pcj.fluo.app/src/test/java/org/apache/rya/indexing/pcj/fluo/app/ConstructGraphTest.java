@@ -1,6 +1,7 @@
 package org.apache.rya.indexing.pcj.fluo.app;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Set;
@@ -47,6 +48,51 @@ public class ConstructGraphTest {
         //
         // assertEquals(expected, statement);
     }
+    
+    @Test
+    public void testConstructGraphBNode() throws MalformedQueryException {
+        String query = "select ?x where { _:b <uri:talksTo> ?x. _:b <uri:worksAt> ?z }";
+
+        SPARQLParser parser = new SPARQLParser();
+        ParsedQuery pq = parser.parseQuery(query, null);
+        List<StatementPattern> patterns = StatementPatternCollector.process(pq.getTupleExpr());
+        ConstructGraph graph = new ConstructGraph(patterns);
+
+        QueryBindingSet bs = new QueryBindingSet();
+        bs.addBinding("x", vf.createURI("uri:Joe"));
+        bs.addBinding("z", vf.createURI("uri:BurgerShack"));
+        VisibilityBindingSet vBs = new VisibilityBindingSet(bs, "FOUO");
+        Set<RyaStatement> statements = graph.createGraphFromBindingSet(vBs);
+        
+        QueryBindingSet bs2 = new QueryBindingSet();
+        bs2.addBinding("x", vf.createURI("uri:Bob"));
+        bs2.addBinding("z", vf.createURI("uri:BurgerShack"));
+        VisibilityBindingSet vBs2 = new VisibilityBindingSet(bs2, "FOUO");
+        Set<RyaStatement> statements2 = graph.createGraphFromBindingSet(vBs2);
+        
+        RyaURI subject = null;
+        for(RyaStatement statement: statements) {
+            RyaURI subjURI = statement.getSubject();
+            if(subject == null) {
+                subject = subjURI;
+            } else {
+                assertEquals(subjURI, subject);
+            }
+        }
+        RyaURI subject2 = null;
+        for(RyaStatement statement: statements2) {
+            RyaURI subjURI = statement.getSubject();
+            if(subject2 == null) {
+                subject2 = subjURI;
+            } else {
+                assertEquals(subjURI, subject2);
+            }
+        }
+        
+        assertTrue(!subject.equals(subject2));
+
+    }
+    
     
     @Test
     public void testConstructGraphSerializer() throws MalformedQueryException {

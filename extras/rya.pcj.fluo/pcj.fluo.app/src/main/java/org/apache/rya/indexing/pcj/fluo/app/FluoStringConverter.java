@@ -22,12 +22,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.DELIM;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.TYPE_DELIM;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.URI_TYPE;
+import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.BNODE_PREFIX;
 
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
+import org.openrdf.model.BNode;
 import org.openrdf.model.Literal;
 import org.openrdf.model.URI;
+import org.openrdf.model.Value;
+import org.openrdf.model.impl.BNodeImpl;
 import org.openrdf.model.impl.LiteralImpl;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.query.BindingSet;
@@ -108,6 +112,14 @@ public class FluoStringConverter {
                 var.setConstant(true);
                 return var;
             }
+        } else if (varString.startsWith("-anon-")) {
+            final String[] varParts = varString.split(TYPE_DELIM);
+            final String name = varParts[0];
+            String bNodePrefix = BNODE_PREFIX + "_";
+            final String valueString = varParts[1].substring(bNodePrefix.length());
+            Var var = new Var(name);
+            var.setValue(new BNodeImpl(valueString));
+            return var;
         } else {
             // The variable is a named variable.
             return new Var(varString);
@@ -129,7 +141,12 @@ public class FluoStringConverter {
         final Var subjVar = sp.getSubjectVar();
         String subj = subjVar.getName();
         if(subjVar.getValue() != null) {
-            subj = subj + TYPE_DELIM + URI_TYPE;
+            Value subjValue = subjVar.getValue();
+            if (subjValue instanceof BNode) {
+                subj = subj + TYPE_DELIM + BNODE_PREFIX + "_" + ((BNode) subjValue).getID(); 
+            } else {
+                subj = subj + TYPE_DELIM + URI_TYPE;
+            }
         }
 
         final Var predVar = sp.getPredicateVar();

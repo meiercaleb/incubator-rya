@@ -3,6 +3,7 @@ package org.apache.rya.indexing.pcj.fluo.app;
 import static org.junit.Assert.assertEquals;
 
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.rya.api.domain.RyaStatement;
@@ -34,7 +35,7 @@ public class ConstructProjectionTest {
         QueryBindingSet bs = new QueryBindingSet();
         bs.addBinding("x", vf.createURI("uri:Joe"));
         VisibilityBindingSet vBs = new VisibilityBindingSet(bs, "FOUO");
-        RyaStatement statement = projection.projectBindingSet(vBs);
+        RyaStatement statement = projection.projectBindingSet(vBs, new HashMap<>());
         
         RyaStatement expected = new RyaStatement(new RyaURI("uri:Joe"), new RyaURI("uri:talksTo"), new RyaURI("uri:Bob"));
         expected.setColumnVisibility("FOUO".getBytes("UTF-8"));
@@ -55,7 +56,7 @@ public class ConstructProjectionTest {
         QueryBindingSet bs = new QueryBindingSet();
         bs.addBinding("p", vf.createURI("uri:worksWith"));
         VisibilityBindingSet vBs = new VisibilityBindingSet(bs);
-        RyaStatement statement = projection.projectBindingSet(vBs);
+        RyaStatement statement = projection.projectBindingSet(vBs, new HashMap<>());
         
         RyaStatement expected = new RyaStatement(new RyaURI("uri:Joe"), new RyaURI("uri:worksWith"), new RyaURI("uri:Bob"));
         expected.setTimestamp(statement.getTimestamp());

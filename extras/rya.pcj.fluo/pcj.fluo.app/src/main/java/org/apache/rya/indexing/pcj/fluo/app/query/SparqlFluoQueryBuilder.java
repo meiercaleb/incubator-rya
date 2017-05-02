@@ -47,11 +47,13 @@ import org.apache.rya.indexing.pcj.fluo.app.query.AggregationMetadata.Aggregatio
 import org.apache.rya.indexing.pcj.fluo.app.query.JoinMetadata.JoinType;
 import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
 import org.openrdf.query.algebra.AggregateOperator;
+import org.openrdf.query.algebra.BNodeGenerator;
 import org.openrdf.query.algebra.Extension;
 import org.openrdf.query.algebra.Filter;
 import org.openrdf.query.algebra.Group;
 import org.openrdf.query.algebra.GroupElem;
 import org.openrdf.model.Value;
+import org.openrdf.model.impl.BNodeImpl;
 import org.openrdf.query.algebra.Extension;
 import org.openrdf.query.algebra.ExtensionElem;
 import org.openrdf.query.algebra.Filter;
@@ -569,6 +571,8 @@ public class SparqlFluoQueryBuilder {
                 if(expr instanceof ValueConstant) {
                     Value value = ((ValueConstant) expr).getValue();
                     valueMap.put(name, value);
+                } else if(expr instanceof BNodeGenerator) {
+                    valueMap.put(name, new BNodeImpl(UUID.randomUUID().toString()));
                 }
             }
             

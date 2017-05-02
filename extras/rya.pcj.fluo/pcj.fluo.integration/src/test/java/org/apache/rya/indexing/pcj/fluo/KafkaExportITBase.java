@@ -44,6 +44,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
 import org.apache.rya.accumulo.AccumuloRyaDAO;
 import org.apache.rya.api.client.Install.InstallConfiguration;
@@ -53,6 +54,7 @@ import org.apache.rya.api.client.accumulo.AccumuloRyaClientFactory;
 import org.apache.rya.indexing.accumulo.ConfigUtils;
 import org.apache.rya.indexing.external.PrecomputedJoinIndexerConfig;
 import org.apache.rya.indexing.pcj.fluo.app.export.kafka.KafkaExportParameters;
+import org.apache.rya.indexing.pcj.fluo.app.export.kafka.RyaSubGraphKafkaSerDe;
 import org.apache.rya.indexing.pcj.fluo.app.observers.AggregationObserver;
 import org.apache.rya.indexing.pcj.fluo.app.observers.ConstructQueryResultObserver;
 import org.apache.rya.indexing.pcj.fluo.app.observers.FilterObserver;
@@ -69,6 +71,7 @@ import org.junit.Test;
 import org.openrdf.model.Statement;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.Sail;
+
 
 import kafka.admin.AdminUtils;
 import kafka.admin.RackAwareMode;
@@ -139,7 +142,14 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         //it will only add results back into Fluo
         HashMap<String, String> constructParams = new HashMap<>();
         final KafkaExportParameters kafkaConstructParams = new KafkaExportParameters(constructParams);
-        kafkaConstructParams.setExportToKafka(false);
+        kafkaConstructParams.setExportToKafka(true);
+        
+        // Configure the Kafka Producer
+        final Properties constructProducerConfig = new Properties();
+        constructProducerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BROKERHOST + ":" + BROKERPORT);
+        constructProducerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        constructProducerConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, RyaSubGraphKafkaSerDe.class.getName());
+        kafkaConstructParams.addAllProducerConfig(constructProducerConfig);
 
         final ObserverSpecification constructExportObserverConfig = new ObserverSpecification(ConstructQueryResultObserver.class.getName(),
                 constructParams);
@@ -177,7 +187,7 @@ public class KafkaExportITBase extends AccumuloExportITBase {
     }
 
     @After
-    public void teardownRya() throws Exception {
+    public void teardownRya() {
         final MiniAccumuloCluster cluster = super.getMiniAccumuloCluster();
         final String instanceName = cluster.getInstanceName();
         final String zookeepers = cluster.getZooKeepers();
@@ -187,11 +197,14 @@ public class KafkaExportITBase extends AccumuloExportITBase {
                 new AccumuloConnectionDetails(ACCUMULO_USER, ACCUMULO_PASSWORD.toCharArray(), instanceName, zookeepers),
                 super.getAccumuloConnector());
 
-        ryaClient.getUninstall().uninstall(RYA_INSTANCE_NAME);
-
-        // Shutdown the repo.
-        ryaSailRepo.shutDown();
-        dao.destroy();
+        try {
+            ryaClient.getUninstall().uninstall(RYA_INSTANCE_NAME);
+            // Shutdown the repo.
+            if(ryaSailRepo != null) {ryaSailRepo.shutDown();}
+            if(dao != null ) {dao.destroy();}
+        } catch (Exception e) {
+            System.out.println("Encountered the following Exception when shutting down Rya: " + e.getMessage());
+        }
     }
 
     private void installRyaInstance() throws Exception {
@@ -262,9 +275,9 @@ public class KafkaExportITBase extends AccumuloExportITBase {
      */
     @After
     public void teardownKafka() {
-        kafkaServer.shutdown();
-        zkClient.close();
-        zkServer.shutdown();
+        if(kafkaServer != null) {kafkaServer.shutdown();}
+        if(zkClient != null) {zkClient.close();}
+        if(zkServer != null) {zkServer.shutdown();}
     }
 
     /**

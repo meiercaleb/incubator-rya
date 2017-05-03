@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -14,6 +15,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.stream.DoubleStream;
 
 import org.apache.accumulo.core.client.Connector;
@@ -121,7 +123,7 @@ public class CepMainDemo extends KafkaExportITBase {
 
         CepMainDemo demo = new CepMainDemo();
         try {
-            Set<Statement> statements = demo.generateData(100, 100, 20, 20);
+            Set<Statement> statements = demo.generateData(10, 10, 5, 5);
             demo.init();
             demo.filterExample(Arrays.asList(statements));
             demo.aggregationExample(Arrays.asList(statements));
@@ -138,12 +140,21 @@ public class CepMainDemo extends KafkaExportITBase {
       final String sparql = "PREFIX geo: <http://www.opengis.net/ont/geosparql#>  \n"//
               + "PREFIX geof: <http://www.opengis.net/def/function/geosparql/>  \n"//
               + "PREFIX obs: <http://observation/ontology#>  \n"//
-              + "SELECT ?mmsi ?wkt \n" //
+              + "PREFIX event: <http://event/ontology#> \n" //
+              + "PREFIX xml: <http://www.w3.org/2001/XMLSchema#> \n"
+              + "PREFIX vessel: <http://vessel/ontology#>  \n"//
+              + "SELECT ?mmsi ?flag ?wkt ?time \n" //
               + "{ \n" //
+              + "  ?vessel vessel:flag ?flag . \n"
+              + "  ?vessel vessel:mmsi ?mmsi . \n"
               + "  ?obs obs:mmsi ?mmsi . \n"//
               + "  ?obs geo:asWKT ?wkt . \n"//
+              + "  ?obs event:time ?time . \n"//
               + "  FILTER(geof:sfWithin(?wkt, \"POLYGON((-77 39, -76 39, -76 38, -77 38, -77 39))\"^^geo:wktLiteral)) \n" //
+              + "  FILTER(?time > '2017-04-21T18:00:00Z'^^xml:dateTime) \n" //
+              + "  FILTER('2017-04-21T23:59:59Z'^^xml:dateTime > ?time ) \n"
               + "} \n";//
+      
       
         System.out.println("**************************************************************************");
         System.out.println("                         RUNNING FILTER EXAMPLE");
@@ -160,13 +171,18 @@ public class CepMainDemo extends KafkaExportITBase {
                 + "PREFIX geof: <http://www.opengis.net/def/function/geosparql/>  \n"//
                 + "PREFIX obs: <http://observation/ontology#>  \n"//
                 + "PREFIX vessel: <http://vessel/ontology#>  \n"//
+                + "PREFIX xml: <http://www.w3.org/2001/XMLSchema#> \n" //
+                + "PREFIX event: <http://event/ontology#> \n" //
                 + "SELECT ?flag (count(?wkt) as ?totalWkt) \n" //
                 + "{ \n" //
                 + "  ?vessel vessel:flag ?flag . \n"
                 + "  ?vessel vessel:mmsi ?mmsi . \n"
                 + "  ?obs obs:mmsi ?mmsi . \n"
                 + "  ?obs geo:asWKT ?wkt . \n"//
+                + "  ?obs event:time ?time . \n"//
                 + "  FILTER(geof:sfWithin(?wkt, \"POLYGON((-77 39, -76 39, -76 38, -77 38, -77 39))\"^^geo:wktLiteral)) \n" //
+                + "  FILTER(?time > '2017-04-21T18:00:00Z'^^xml:dateTime) \n" //
+                + "  FILTER('2017-04-21T23:59:59Z'^^xml:dateTime > ?time ) \n"
                 + "} GROUP BY ?flag \n";//
         
         
@@ -186,30 +202,36 @@ public class CepMainDemo extends KafkaExportITBase {
                 + "PREFIX event: <http://event/ontology#> \n" //
                 + "PREFIX geo: <http://www.opengis.net/ont/geosparql#>  \n"//
                 + "CONSTRUCT { \n" //
-                + "_:b a base:EnemyVesselObservation . \n" //
-                + "_:b base:observation ?obs . \n"  //
-                + "_:b base:vessel ?vessel} \n" //
+                + "  _:b a base:EnemyVesselObservation . \n" //
+                + "  _:b base:observation ?obs . \n"  //
+                + "  _:b base:vessel ?vessel} \n" //l
                 + "WHERE { \n" //
-                + "?obs event:time ?time . \n" //
-                + "?obs geo:asWKT ?wkt . \n" //
-                + "?obs obs:mmsi ?mmsi .\n" //
-                + "?vessel vessel:mmsi ?mmsi .\n" //
-                + "?vessel vessel:flag ?flag .\n" //
-                + "?country country:flag ?flag .\n" //
-                + "country:UnitedStates country:enemy ?country } \n"; //
+                + "  ?obs event:time ?time . \n" //
+                + "  ?obs geo:asWKT ?wkt . \n" //
+                + "  ?obs obs:mmsi ?mmsi .\n" //
+                + "  ?vessel vessel:mmsi ?mmsi .\n" //
+                + "  ?vessel vessel:flag ?flag .\n" //
+                + "  ?country country:flag ?flag .\n" //
+                + "  country:UnitedStates country:enemy ?country \n" //
+                + "} \n"; //
                
         //Perform high level aggregations and filtering on semantically enriched triples
         final String aggregation = "PREFIX vessel: <http://vessel/ontology#>  \n"//
                 + "PREFIX base: <http://vessel/observation/> \n" //
                 + "PREFIX geo: <http://www.opengis.net/ont/geosparql#>  \n"//
                 + "PREFIX geof: <http://www.opengis.net/def/function/geosparql/>  \n"//
+                + "PREFIX xml: <http://www.w3.org/2001/XMLSchema#> \n"
+                + "PREFIX event: <http://event/ontology#> \n" //
                 + "SELECT ?flag (count(?wkt) as ?totalVessels) { \n"//
-                + "?enemyObs a base:EnemyVesselObservation . \n"//
-                + "?enemyObs base:observation ?obs . \n"//
-                + "?obs geo:asWKT ?wkt . \n"//
-                + "?enemyObs base:vessel ?vessel . \n"//
-                + "?vessel vessel:flag ?flag .\n"//
-                + "FILTER(geof:sfWithin(?wkt, \"POLYGON((-77 39, -76 39, -76 38, -77 38, -77 39))\"^^geo:wktLiteral)) \n"//
+                + "  ?enemyObs a base:EnemyVesselObservation . \n"//
+                + "  ?enemyObs base:observation ?obs . \n"//
+                + "  ?obs geo:asWKT ?wkt . \n"//
+                + "  ?obs event:time ?time . \n" //
+                + "  ?enemyObs base:vessel ?vessel . \n"//
+                + "  ?vessel vessel:flag ?flag .\n"//
+                + "  FILTER(geof:sfWithin(?wkt, \"POLYGON((-77 39, -76 39, -76 38, -77 38, -77 39))\"^^geo:wktLiteral)) \n"//
+                + "  FILTER(?time > '2017-04-21T18:00:00Z'^^xml:dateTime) \n" //
+                + "  FILTER('2017-04-21T23:59:59Z'^^xml:dateTime > ?time ) \n" //
                 + "} GROUP BY ?flag \n";//
 
         System.out.println("**************************************************************************");
@@ -239,6 +261,112 @@ public class CepMainDemo extends KafkaExportITBase {
         }
     }
     
+    
+    /************************************************************************************
+     *                           Methods to Add Queries to Fluo
+     ************************************************************************************/
+    private String createConstructPcj(String sparql) throws MalformedQueryException, PcjException {
+        prettyPrintQuery(sparql);
+        CreatePcj createPcj = new CreatePcj();
+        try (FluoClient client = new FluoClientImpl(super.getFluoConfiguration())) {
+            FluoQuery query = createPcj.createFluoPcj(client, sparql);
+            return query.getConstructQueryMetadata().get().getNodeId();
+        }
+    }
+
+    private String createPcj(String sparql) throws InstanceDoesNotExistException, RyaClientException {
+        // Register the PCJ with Rya.
+        prettyPrintQuery(sparql);
+        final Instance accInstance = getAccumuloConnector().getInstance();
+        final Connector accumuloConn = getAccumuloConnector();
+
+        final RyaClient ryaClient = AccumuloRyaClientFactory.build(new AccumuloConnectionDetails(ACCUMULO_USER,
+                ACCUMULO_PASSWORD.toCharArray(), accInstance.getInstanceName(), accInstance.getZooKeepers()), accumuloConn);
+
+        final String pcjId = ryaClient.getCreatePCJ().createPCJ(RYA_INSTANCE_NAME, sparql);
+        return pcjId;
+    }
+    
+    /************************************************************************************
+     *                    Methods to Generate Simulated Data 
+     ************************************************************************************/
+    private Set<Statement> generateData(int numAlliesIn, int numEnemiesIn, int numAlliesOut, int numEnemiesOut) {
+        
+        List<String> allies = Arrays.asList("American", "British", "Austrialian", "Japanese", "German", "French", "South Korean", "Canadian");
+        List<String> enemies = Arrays.asList("Russian", "North Korean", "Iranian", "Syrian");
+        Random random = new Random();
+        
+        int baseMMSI = 533100000;
+        GregorianCalendar calendar = new GregorianCalendar(2017, 3, 21, 12, 0);
+        calendar.setTimeZone(TimeZone.getTimeZone("GMT"));
+        DoubleStream allyInStream = random.doubles(2*(numAlliesIn), 0, 1);
+        DoubleStream allyOutStream = random.doubles(2*(numAlliesOut), 1, 3);
+        DoubleStream enemyInStream = random.doubles(2*(numEnemiesIn), 0, 1);
+        DoubleStream enemyOutStream = random.doubles(2*(numEnemiesOut), 1, 3);
+        
+        Set<Statement> statements = new HashSet<>();
+        statements.addAll(buildStatements(numAlliesIn, baseMMSI, allies, calendar, allyInStream.iterator()));
+        baseMMSI += numAlliesIn;
+        statements.addAll(buildStatements(numAlliesOut, baseMMSI, allies, calendar, allyOutStream.iterator()));
+        baseMMSI += numAlliesIn;
+        statements.addAll(buildStatements(numEnemiesIn, baseMMSI, enemies, calendar, enemyInStream.iterator()));
+        baseMMSI += numAlliesIn;
+        statements.addAll(buildStatements(numEnemiesOut, baseMMSI, enemies, calendar, enemyOutStream.iterator()));
+        
+        final Collection<Statement> countryStatements =
+                Sets.newHashSet(
+                        vf.createStatement(vf.createURI(country + "UnitedStates"), countryFlag, vf.createLiteral("American")),
+                        vf.createStatement(vf.createURI(country + "Russia"), countryFlag, vf.createLiteral("Russian")),
+                        vf.createStatement(vf.createURI(country + "NorthKorea"), countryFlag, vf.createLiteral("North Korean")),
+                        vf.createStatement(vf.createURI(country + "Iran"), countryFlag, vf.createLiteral("Iranian")),
+                        vf.createStatement(vf.createURI(country + "Australia"), countryFlag, vf.createLiteral("Australian")),
+                        vf.createStatement(vf.createURI(country + "Britian"), countryFlag, vf.createLiteral("British")),
+                        vf.createStatement(vf.createURI(country + "Syria"), countryFlag, vf.createLiteral("Syrian")),
+                        
+                        vf.createStatement(vf.createURI(country + "UnitedStates"), countryEnemy, vf.createURI(country + "Russia")),
+                        vf.createStatement(vf.createURI(country + "UnitedStates"), countryEnemy, vf.createURI(country + "NorthKorea")),
+                        vf.createStatement(vf.createURI(country + "UnitedStates"), countryEnemy, vf.createURI(country + "Syria")),
+                        vf.createStatement(vf.createURI(country + "UnitedStates"), countryEnemy, vf.createURI(country + "Iran")));
+                
+        statements.addAll(countryStatements);
+        
+        return statements;
+        
+    }
+    
+    private Set<Statement> buildStatements(int num, int mmsi, List<String> flags, GregorianCalendar calendar, Iterator<Double> doubles) {
+        Set<Statement> statements = new HashSet<>();
+        Random random = new Random();
+        for(int i = 0; i < num; i++) {
+            double lat = -76 - doubles.next();
+            double lon = 38 + doubles.next();
+            GregorianCalendar randomCalendar = (GregorianCalendar) calendar.clone();
+            randomCalendar.add(11, random.nextInt(12));
+            randomCalendar.add(12, random.nextInt(60));
+            randomCalendar.add(13, random.nextInt(60));
+            String randFlag = flags.get(random.nextInt(flags.size()));
+            statements.addAll(buildStatements(mmsi++, randFlag, randomCalendar, lat, lon));
+        }
+        return statements;
+    }
+    
+    private Set<Statement> buildStatements(int mmsi, String flag, GregorianCalendar calendar, double lat, double lon) {
+        Set<Statement> statements = new HashSet<>();
+        URI vesselSubjURI = vf.createURI(vessel + mmsi);
+        URI obsSubjURI = vf.createURI(obs + mmsi);
+        statements.add(vf.createStatement(vesselSubjURI, vesselMmsi, vf.createLiteral(mmsi)));
+        statements.add(vf.createStatement(vesselSubjURI, vesselFlag, vf.createLiteral(flag)));
+        statements.add(vf.createStatement(obsSubjURI, obsMmsi, vf.createLiteral(mmsi)));
+        statements.add(vf.createStatement(obsSubjURI, obsTime, vf.createLiteral(calendar.getTime())));
+        String point = "Point(" + lat  + " " + lon + ")";
+        statements.add(vf.createStatement(obsSubjURI, obsWKT, new LiteralImpl(point, wktLiteral)));
+        
+        return statements;
+    }
+    
+    /************************************************************************************
+     *                      Methods to Load Simulated Data
+     ************************************************************************************/
     private void loadDataAndPrintResults(Set<Statement> statements, String pcjId, Optional<String> constructPcjId,
             Optional<VariableOrder> groupedVarOrder) throws Exception {
         loadData(statements);
@@ -263,119 +391,6 @@ public class CepMainDemo extends KafkaExportITBase {
         printResults(results, pcjId);
     }
     
-    
-    private Set<Statement> generateData(int numAlliesIn, int numEnemiesIn, int numAlliesOut, int numEnemiesOut) {
-        
-        List<String> allies = Arrays.asList("American", "British", "Austrialian");
-        List<String> enemies = Arrays.asList("Russian", "North Korean", "Iranian");
-        Random random = new Random();
-        
-        int baseMMSI = 533100000;
-        long currentDate = System.currentTimeMillis();
-        DoubleStream allyInStream = random.doubles(2*(numAlliesIn), 0, 1);
-        DoubleStream allyOutStream = random.doubles(2*(numAlliesOut), 1, 3);
-        DoubleStream enemyInStream = random.doubles(2*(numEnemiesIn), 0, 1);
-        DoubleStream enemyOutStream = random.doubles(2*(numEnemiesOut), 1, 3);
-        
-        Set<Statement> statements = new HashSet<>();
-        statements.addAll(buildStatements(numAlliesIn, baseMMSI, allies, currentDate, allyInStream.iterator()));
-        baseMMSI += numAlliesIn;
-        statements.addAll(buildStatements(numAlliesOut, baseMMSI, allies, currentDate, allyOutStream.iterator()));
-        baseMMSI += numAlliesIn;
-        statements.addAll(buildStatements(numEnemiesIn, baseMMSI, enemies, currentDate, enemyInStream.iterator()));
-        baseMMSI += numAlliesIn;
-        statements.addAll(buildStatements(numEnemiesOut, baseMMSI, enemies, currentDate, enemyOutStream.iterator()));
-        
-        final Collection<Statement> countryStatements =
-                Sets.newHashSet(
-                        vf.createStatement(vf.createURI(country + "UnitedStates"), countryFlag, vf.createLiteral("American")),
-                        vf.createStatement(vf.createURI(country + "Russia"), countryFlag, vf.createLiteral("Russian")),
-                        vf.createStatement(vf.createURI(country + "NorthKorea"), countryFlag, vf.createLiteral("North Korean")),
-                        vf.createStatement(vf.createURI(country + "Iran"), countryFlag, vf.createLiteral("Iranian")),
-                        vf.createStatement(vf.createURI(country + "Australia"), countryFlag, vf.createLiteral("Australian")),
-                        vf.createStatement(vf.createURI(country + "Britian"), countryFlag, vf.createLiteral("British")),
-                        
-                        vf.createStatement(vf.createURI(country + "UnitedStates"), countryEnemy, vf.createURI(country + "Russia")),
-                        vf.createStatement(vf.createURI(country + "UnitedStates"), countryEnemy, vf.createURI(country + "NorthKorea")),
-                        vf.createStatement(vf.createURI(country + "UnitedStates"), countryEnemy, vf.createURI(country + "Iran")));
-                
-        statements.addAll(countryStatements);
-        
-        return statements;
-        
-    }
-    
-    private Set<Statement> buildStatements(int num, int mmsi, List<String> flags, long date, Iterator<Double> doubles) {
-        Set<Statement> statements = new HashSet<>();
-        Random random = new Random();
-        for(int i = 0; i < num; i++) {
-            double lat = -76 - doubles.next();
-            double lon = 38 + doubles.next();
-            Date randDate = new Date(date - random.nextInt(86400000));
-            String randFlag = flags.get(random.nextInt(flags.size()));
-            statements.addAll(buildStatements(mmsi++, randFlag, randDate, lat, lon));
-        }
-        return statements;
-    }
-    
-    private Set<Statement> buildStatements(int mmsi, String flag, Date date, double lat, double lon) {
-        
-        Set<Statement> statements = new HashSet<>();
-        URI vesselSubjURI = vf.createURI(vessel + mmsi);
-        URI obsSubjURI = vf.createURI(obs + mmsi);
-        statements.add(vf.createStatement(vesselSubjURI, vesselMmsi, vf.createLiteral(mmsi)));
-        statements.add(vf.createStatement(vesselSubjURI, vesselFlag, vf.createLiteral(flag)));
-        statements.add(vf.createStatement(obsSubjURI, obsMmsi, vf.createLiteral(mmsi)));
-        statements.add(vf.createStatement(obsSubjURI, obsTime, vf.createLiteral(date)));
-        String point = "Point(" + lat  + " " + lon + ")";
-        statements.add(vf.createStatement(obsSubjURI, obsWKT, new LiteralImpl(point, wktLiteral)));
-        
-        return statements;
-    }
-        
-    private void printResults(Set<?> results, String pcjId) {
-        System.out.println("Retrieved the following results from Kafka topic: " + pcjId);
-        System.out.println("");
-        System.out.println("==================== QUERY RESULTS ==========================");
-        results.forEach(x -> System.out.println(x));
-        System.out.println("==================== END QUERY RESULTS ======================");
-        System.out.println("");
-        System.out.println("");
-    }
-
-    private String createConstructPcj(String sparql) throws MalformedQueryException, PcjException {
-        prettyPrintQuery(sparql);
-        CreatePcj createPcj = new CreatePcj();
-        try (FluoClient client = new FluoClientImpl(super.getFluoConfiguration())) {
-            FluoQuery query = createPcj.createFluoPcj(client, sparql);
-            return query.getConstructQueryMetadata().get().getNodeId();
-        }
-    }
-
-    private String createPcj(String sparql) throws InstanceDoesNotExistException, RyaClientException {
-        // Register the PCJ with Rya.
-        prettyPrintQuery(sparql);
-        final Instance accInstance = getAccumuloConnector().getInstance();
-        final Connector accumuloConn = getAccumuloConnector();
-
-        final RyaClient ryaClient = AccumuloRyaClientFactory.build(new AccumuloConnectionDetails(ACCUMULO_USER,
-                ACCUMULO_PASSWORD.toCharArray(), accInstance.getInstanceName(), accInstance.getZooKeepers()), accumuloConn);
-
-        final String pcjId = ryaClient.getCreatePCJ().createPCJ(RYA_INSTANCE_NAME, sparql);
-        return pcjId;
-    }
-
-    private void prettyPrintQuery(String query) {
-
-        System.out.println("Registering the following query in Fluo: ");
-        System.out.println("");
-        for (String str : query.split("\\r?\\n")) {
-            System.out.println(str);
-        }
-        System.out.println("");
-
-    }
-
     private void loadData(final Collection<Statement> statements) throws Exception {
         System.out.println("");
         System.out.println("Loading Statements into Rya...");
@@ -390,7 +405,11 @@ public class CepMainDemo extends KafkaExportITBase {
         // Wait for the Fluo application to finish computing the end result.
         super.getMiniFluo().waitForObservers();
     }
+        
 
+    /************************************************************************************
+     *                          Methods to Read Results From Kafka
+     ************************************************************************************/
     private Set<VisibilityBindingSet> readAllResultsFromKafka(final String pcjId) throws Exception {
         requireNonNull(pcjId);
 
@@ -471,5 +490,29 @@ public class CepMainDemo extends KafkaExportITBase {
             }
         }
         return Sets.newHashSet(results.values());
+    }
+    
+    /************************************************************************************
+     *                        Methods to Print Results And Queries
+     ************************************************************************************/
+    private void printResults(Set<?> results, String pcjId) {
+        System.out.println("Retrieved the following results from Kafka topic: " + pcjId);
+        System.out.println("");
+        System.out.println("==================== QUERY RESULTS ==========================");
+        results.forEach(x -> System.out.println(x));
+        System.out.println("==================== END QUERY RESULTS ======================");
+        System.out.println("");
+        System.out.println("");
+    }
+    
+    private void prettyPrintQuery(String query) {
+
+        System.out.println("Registering the following query in Fluo: ");
+        System.out.println("");
+        for (String str : query.split("\\r?\\n")) {
+            System.out.println(str);
+        }
+        System.out.println("");
+
     }
 }

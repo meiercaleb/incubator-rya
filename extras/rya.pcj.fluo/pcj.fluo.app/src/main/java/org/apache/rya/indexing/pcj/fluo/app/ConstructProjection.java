@@ -225,7 +225,7 @@ public class ConstructProjection {
             if(tempValue instanceof BNode) {
                 returnValue = bNodes.get(name);
             } else {
-                returnValue = optValue.get();
+                returnValue = tempValue;
             }
         } else {
             returnValue = bs.getValue(name);

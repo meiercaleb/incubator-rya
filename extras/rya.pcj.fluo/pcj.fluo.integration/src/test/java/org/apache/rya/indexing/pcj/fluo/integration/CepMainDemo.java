@@ -4,7 +4,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,7 +21,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.fluo.api.client.FluoClient;
 import org.apache.fluo.core.client.FluoClientImpl;
-import org.apache.fluo.recipes.test.FluoITHelper;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -120,7 +118,6 @@ public class CepMainDemo extends KafkaExportITBase {
      * Main Method
      ****************************************************************************/
     public static void main(String[] args) {
-
         CepMainDemo demo = new CepMainDemo();
         try {
             Set<Statement> statements = demo.generateData(10, 10, 5, 5);
@@ -289,8 +286,9 @@ public class CepMainDemo extends KafkaExportITBase {
     
     /************************************************************************************
      *                    Methods to Generate Simulated Data 
+     * @throws InterruptedException 
      ************************************************************************************/
-    private Set<Statement> generateData(int numAlliesIn, int numEnemiesIn, int numAlliesOut, int numEnemiesOut) {
+    private Set<Statement> generateData(int numAlliesIn, int numEnemiesIn, int numAlliesOut, int numEnemiesOut) throws InterruptedException {
         
         List<String> allies = Arrays.asList("American", "British", "Austrialian", "Japanese", "German", "French", "South Korean", "Canadian");
         List<String> enemies = Arrays.asList("Russian", "North Korean", "Iranian", "Syrian");
@@ -329,6 +327,13 @@ public class CepMainDemo extends KafkaExportITBase {
                         vf.createStatement(vf.createURI(country + "UnitedStates"), countryEnemy, vf.createURI(country + "Iran")));
                 
         statements.addAll(countryStatements);
+        
+        System.out.println("Generated the following simulated vessel data: ");
+        System.out.println("");
+        Thread.sleep(1000);
+        statements.forEach(x -> System.out.println(x));
+        Thread.sleep(5000);
+        System.out.println("");
         
         return statements;
         

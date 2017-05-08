@@ -60,11 +60,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-         <dependency>
-            <groupId>org.apache.fluo</groupId>
-            <artifactId>fluo-api</artifactId>
         </dependency>
 
         <dependency>
@@ -95,11 +90,11 @@
                     <groupId>org.slf4j</groupId>
                 </exclusion>
             </exclusions>
+            <scope>test</scope>
         </dependency>
         <dependency>
              <groupId>org.apache.fluo</groupId>
             <artifactId>fluo-recipes-test</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

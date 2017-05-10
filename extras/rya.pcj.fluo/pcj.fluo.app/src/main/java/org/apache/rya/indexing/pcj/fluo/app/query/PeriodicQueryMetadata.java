@@ -18,7 +18,7 @@ import com.google.common.base.Preconditions;
  * Bin Id.
  * 
  */
-public class PeriodicBinMetadata extends CommonNodeMetadata {
+public class PeriodicQueryMetadata extends CommonNodeMetadata {
 
     private String parentNodeId;
     private String childNodeId;
@@ -28,7 +28,7 @@ public class PeriodicBinMetadata extends CommonNodeMetadata {
     private long startTime;
     private String temporalVariable;
 
-    public PeriodicBinMetadata(String nodeId, VariableOrder varOrder, String parentNodeId, String childNodeId, int windowSize, int period,
+    public PeriodicQueryMetadata(String nodeId, VariableOrder varOrder, String parentNodeId, String childNodeId, int windowSize, int period,
             TimeUnit unit, long startTime, String temporalVariable) {
         super(nodeId, varOrder);
         Preconditions.checkNotNull(parentNodeId);
@@ -91,9 +91,9 @@ public class PeriodicBinMetadata extends CommonNodeMetadata {
             return true;
         }
 
-        if (o instanceof PeriodicBinMetadata) {
+        if (o instanceof PeriodicQueryMetadata) {
             if (super.equals(o)) {
-                PeriodicBinMetadata metadata = (PeriodicBinMetadata) o;
+                PeriodicQueryMetadata metadata = (PeriodicQueryMetadata) o;
                 return new EqualsBuilder().append(childNodeId, metadata.childNodeId).append(parentNodeId, metadata.parentNodeId)
                         .append(startTime, metadata.startTime).append(windowSize, metadata.windowSize).append(period, metadata.period)
                         .append(unit, metadata.unit).append(temporalVariable, metadata.temporalVariable).isEquals();
@@ -179,8 +179,8 @@ public class PeriodicBinMetadata extends CommonNodeMetadata {
             return this;
         }
 
-        public PeriodicBinMetadata build() {
-            return new PeriodicBinMetadata(nodeId, varOrder, parentNodeId, childNodeId, windowSize, period, unit, startTime, temporalVariable);
+        public PeriodicQueryMetadata build() {
+            return new PeriodicQueryMetadata(nodeId, varOrder, parentNodeId, childNodeId, windowSize, period, unit, startTime, temporalVariable);
         }
     }
 

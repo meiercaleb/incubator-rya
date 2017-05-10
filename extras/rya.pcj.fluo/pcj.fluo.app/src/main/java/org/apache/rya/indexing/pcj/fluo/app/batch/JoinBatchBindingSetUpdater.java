@@ -73,6 +73,7 @@ public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
      */
     @Override
     public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) {
+        super.processBatch(tx, nodeId, batch);
         Preconditions.checkArgument(batch instanceof JoinBatchInformation);
         JoinBatchInformation joinBatch = (JoinBatchInformation) batch;
         Task task = joinBatch.getTask();

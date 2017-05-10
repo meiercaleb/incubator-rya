@@ -3,7 +3,7 @@ package cep.periodic.notification.exporter;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.log4j.Logger;
-import org.apache.rya.indexing.pcj.fluo.app.PeriodicBinUpdater;
+import org.apache.rya.indexing.pcj.fluo.app.PeriodicQueryUpdater;
 import org.openrdf.model.Literal;
 import org.openrdf.query.BindingSet;
 
@@ -33,7 +33,7 @@ public class KafkaPeriodicBindingSetExporter implements BindingSetExporter, Runn
 
     @Override
     public void exportNotification(BindingSet bindingSet) {
-        String bindingName = PeriodicBinUpdater.BIN_ID;
+        String bindingName = PeriodicQueryUpdater.BIN_ID;
         long binId = ((Literal) bindingSet.getValue(bindingName)).longValue();
         producer.send(new KeyedMessage<String, BindingSet>(topic, Long.toString(binId), bindingSet));
     }

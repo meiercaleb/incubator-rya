@@ -9,7 +9,7 @@ import org.apache.fluo.api.client.TransactionBase;
 import org.apache.fluo.api.data.Column;
 import org.apache.log4j.Logger;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
-import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicBinMetadata;
+import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicQueryMetadata;
 import org.apache.rya.indexing.pcj.storage.accumulo.BindingSetStringConverter;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSetStringConverter;
@@ -27,16 +27,16 @@ import com.google.common.base.Preconditions;
  * a user can receive periodic updates for a registered query. 
  *
  */
-public class PeriodicBinUpdater {
+public class PeriodicQueryUpdater {
 
-    private static final Logger log = Logger.getLogger(PeriodicBinUpdater.class);
+    private static final Logger log = Logger.getLogger(PeriodicQueryUpdater.class);
     public static final String BIN_ID = "PeriodEndTime";
     private static final ValueFactory vf = new ValueFactoryImpl();
     private static final BindingSetStringConverter idConverter = new BindingSetStringConverter();
     private static final VisibilityBindingSetStringConverter valueConverter = new VisibilityBindingSetStringConverter();
 
 
-    public void updatePeriodicBinResults(TransactionBase tx, VisibilityBindingSet bs, PeriodicBinMetadata metadata) {
+    public void updatePeriodicBinResults(TransactionBase tx, VisibilityBindingSet bs, PeriodicQueryMetadata metadata) {
         Set<Long> binIds = getBinEndTimes(metadata, bs);
         for(Long id: binIds) {
             QueryBindingSet binnedBs = new QueryBindingSet(bs);
@@ -44,7 +44,7 @@ public class PeriodicBinUpdater {
             String binnedBindingSetStringId = idConverter.convert(binnedBs, metadata.getVariableOrder());
             String binnedBindingSetStringValue = valueConverter.convert(binnedBs, metadata.getVariableOrder());
             String row = metadata.getNodeId() + NODEID_BS_DELIM + binnedBindingSetStringId;
-            Column col = FluoQueryColumns.PERIODIC_BIN_BINDING_SET;
+            Column col = FluoQueryColumns.PERIODIC_QUERY_BINDING_SET;
             String value = binnedBindingSetStringValue;
             tx.set(row, col, value);
         }
@@ -57,7 +57,7 @@ public class PeriodicBinUpdater {
      * @param metadata
      * @return Set of period bin end times
      */
-    private Set<Long> getBinEndTimes(PeriodicBinMetadata metadata, VisibilityBindingSet bs) {
+    private Set<Long> getBinEndTimes(PeriodicQueryMetadata metadata, VisibilityBindingSet bs) {
         Set<Long> binIds = new HashSet<>();
         try {
             String timeVar = metadata.getTemporalVariable();

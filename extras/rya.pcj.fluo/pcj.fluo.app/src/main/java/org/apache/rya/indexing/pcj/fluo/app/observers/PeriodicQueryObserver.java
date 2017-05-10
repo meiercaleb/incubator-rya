@@ -6,12 +6,12 @@ import org.apache.fluo.api.client.TransactionBase;
 import org.apache.rya.indexing.pcj.fluo.app.BindingSetRow;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryMetadataDAO;
-import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicBinMetadata;
+import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicQueryMetadata;
 import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSetStringConverter;
 
-public class PeriodicBinObserver extends BindingSetUpdater {
+public class PeriodicQueryObserver extends BindingSetUpdater {
 
     private final VisibilityBindingSetStringConverter converter = new VisibilityBindingSetStringConverter();
 
@@ -19,7 +19,7 @@ public class PeriodicBinObserver extends BindingSetUpdater {
 
     @Override
     public ObservedColumn getObservedColumn() {
-        return new ObservedColumn(FluoQueryColumns.PERIODIC_BIN_BINDING_SET, NotificationType.STRONG);
+        return new ObservedColumn(FluoQueryColumns.PERIODIC_QUERY_BINDING_SET, NotificationType.STRONG);
     }
 
     @Override
@@ -28,7 +28,7 @@ public class PeriodicBinObserver extends BindingSetUpdater {
 
         // Read the Join metadata.
         final String periodicBinNodeId = parsedRow.getNodeId();
-        final PeriodicBinMetadata periodicBinMetadata = queryDao.readPeriodicBinMetadata(tx, periodicBinNodeId);
+        final PeriodicQueryMetadata periodicBinMetadata = queryDao.readPeriodicQueryMetadata(tx, periodicBinNodeId);
 
         // Read the Binding Set that was just emmitted by the Join.
         final VariableOrder periodicBinVarOrder = periodicBinMetadata.getVariableOrder();

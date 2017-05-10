@@ -27,12 +27,12 @@ import org.apache.rya.indexing.pcj.fluo.app.BindingSetRow;
 import org.apache.rya.indexing.pcj.fluo.app.FilterResultUpdater;
 import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater;
 import org.apache.rya.indexing.pcj.fluo.app.NodeType;
-import org.apache.rya.indexing.pcj.fluo.app.PeriodicBinUpdater;
+import org.apache.rya.indexing.pcj.fluo.app.PeriodicQueryUpdater;
 import org.apache.rya.indexing.pcj.fluo.app.QueryResultUpdater;
 import org.apache.rya.indexing.pcj.fluo.app.query.FilterMetadata;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryMetadataDAO;
 import org.apache.rya.indexing.pcj.fluo.app.query.JoinMetadata;
-import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicBinMetadata;
+import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicQueryMetadata;
 import org.apache.rya.indexing.pcj.fluo.app.query.QueryMetadata;
 import org.apache.rya.indexing.pcj.storage.accumulo.BindingSetConverter.BindingSetConversionException;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
@@ -57,7 +57,7 @@ public abstract class BindingSetUpdater extends AbstractObserver {
     private final JoinResultUpdater joinUpdater = new JoinResultUpdater();
     private final FilterResultUpdater filterUpdater = new FilterResultUpdater();
     private final QueryResultUpdater queryUpdater = new QueryResultUpdater();
-    private final PeriodicBinUpdater periodicBinUpdater = new PeriodicBinUpdater();
+    private final PeriodicQueryUpdater periodicQueryUpdater = new PeriodicQueryUpdater();
 
     @Override
     public abstract ObservedColumn getObservedColumn();
@@ -109,10 +109,10 @@ public abstract class BindingSetUpdater extends AbstractObserver {
                 }
                 break;
                 
-            case PERIODIC_BIN:
-                final PeriodicBinMetadata parentPeriodicBin = queryDao.readPeriodicBinMetadata(tx, parentNodeId);
+            case PERIODIC_QUERY:
+                final PeriodicQueryMetadata parentPeriodicQuery = queryDao.readPeriodicQueryMetadata(tx, parentNodeId);
                 try{
-                    periodicBinUpdater.updatePeriodicBinResults(tx, observedBindingSet, parentPeriodicBin);
+                    periodicQueryUpdater.updatePeriodicBinResults(tx, observedBindingSet, parentPeriodicQuery);
                 } catch(Exception e) {
                     throw new RuntimeException("Could not process PeriodicBin node.", e);
                 }

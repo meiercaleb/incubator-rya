@@ -60,16 +60,16 @@ import org.apache.fluo.api.data.Column;
  *   <b>Periodic Bin Metadata</b>
  *   <table border="1" style="width:100%">
  *     <tr> <th>Fluo Row</td> <th>Fluo Column</td> <th>Fluo Value</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicBinMetadata:nodeId</td> <td>The Node ID of the Filter.</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicBinMetadata:variableOrder</td> <td>The Variable Order binding sets are emitted with.</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicBinMetadata:period</td> <td>The period size used to form BindingSet bins.</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicBinMetadata:windowSize</td> <td>The window size used to form BindingSet bins.</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicBinMetadata:startTime</td> <td>The time at which periodic query was registered.</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicBinMetadata:timeUnit</td> <td>The unit of time corresponding to period and window size.</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicBinMetadata:temporalVariable</td> <td>The BindingSet variable corresponding to event time.</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicBinMetadata:parentNodeId</td> <td>The parent node for this node.</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicBinMetadata:childNodeId</td> <td>The child node for this node.</td> </tr>
- *     <tr> <td>Node ID + DELIM + Binding set String</td> <td>periodicBinMetadata:bindingSet</td> <td>A binned BindingSet.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:nodeId</td> <td>The Node ID of the Filter.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:variableOrder</td> <td>The Variable Order binding sets are emitted with.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:period</td> <td>The period size used to form BindingSet bins.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:windowSize</td> <td>The window size used to form BindingSet bins.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:startTime</td> <td>The time at which periodic query was registered.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:timeUnit</td> <td>The unit of time corresponding to period and window size.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:temporalVariable</td> <td>The BindingSet variable corresponding to event time.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:parentNodeId</td> <td>The parent node for this node.</td> </tr>
+ *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:childNodeId</td> <td>The child node for this node.</td> </tr>
+ *     <tr> <td>Node ID + DELIM + Binding set String</td> <td>periodicQueryMetadata:bindingSet</td> <td>A binned BindingSet.</td> </tr>
  *   </table>
  * </p>
  * <p>
@@ -104,7 +104,7 @@ public class FluoQueryColumns {
     public static final String FILTER_METADATA_CF = "filterMetadata";
     public static final String JOIN_METADATA_CF = "joinMetadata";
     public static final String STATEMENT_PATTERN_METADATA_CF = "statementPatternMetadata";
-    public static final String PERIODIC_BIN_METADATA_CF = "periodicBinMetadata";
+    public static final String PERIODIC_QUERY_METADATA_CF = "periodicQueryMetadata";
 
     /**
      * New triples that have been added to Rya are written as a row in this
@@ -162,16 +162,16 @@ public class FluoQueryColumns {
     public static final Column FILTER_BINDING_SET = new Column(FILTER_METADATA_CF, "bindingSet");
     
     // Periodic Bin Metadata columns.
-    public static final Column PERIODIC_BIN_NODE_ID = new Column(PERIODIC_BIN_METADATA_CF, "nodeId");
-    public static final Column PERIODIC_BIN_VARIABLE_ORDER = new Column(PERIODIC_BIN_METADATA_CF, "variableOrder");
-    public static final Column PERIODIC_BIN_PARENT_NODE_ID = new Column(PERIODIC_BIN_METADATA_CF, "parentNodeId");
-    public static final Column PERIODIC_BIN_CHILD_NODE_ID = new Column(PERIODIC_BIN_METADATA_CF, "childNodeId");
-    public static final Column PERIODIC_BIN_BINDING_SET = new Column(PERIODIC_BIN_METADATA_CF, "bindingSet");
-    public static final Column PERIODIC_BIN_PERIOD = new Column(PERIODIC_BIN_METADATA_CF, "period");
-    public static final Column PERIODIC_BIN_WINDOWSIZE = new Column(PERIODIC_BIN_METADATA_CF, "windowSize");
-    public static final Column PERIODIC_BIN_STARTTIME = new Column(PERIODIC_BIN_METADATA_CF, "startTime");
-    public static final Column PERIODIC_BIN_TIMEUNIT = new Column(PERIODIC_BIN_METADATA_CF, "timeUnit");
-    public static final Column PERIODIC_BIN_TEMPORAL_VARIABLE = new Column(PERIODIC_BIN_METADATA_CF, "temporalVariable");
+    public static final Column PERIODIC_QUERY_NODE_ID = new Column(PERIODIC_QUERY_METADATA_CF, "nodeId");
+    public static final Column PERIODIC_QUERY_VARIABLE_ORDER = new Column(PERIODIC_QUERY_METADATA_CF, "variableOrder");
+    public static final Column PERIODIC_QUERY_PARENT_NODE_ID = new Column(PERIODIC_QUERY_METADATA_CF, "parentNodeId");
+    public static final Column PERIODIC_QUERY_CHILD_NODE_ID = new Column(PERIODIC_QUERY_METADATA_CF, "childNodeId");
+    public static final Column PERIODIC_QUERY_BINDING_SET = new Column(PERIODIC_QUERY_METADATA_CF, "bindingSet");
+    public static final Column PERIODIC_QUERY_PERIOD = new Column(PERIODIC_QUERY_METADATA_CF, "period");
+    public static final Column PERIODIC_QUERY_WINDOWSIZE = new Column(PERIODIC_QUERY_METADATA_CF, "windowSize");
+    public static final Column PERIODIC_QUERY_STARTTIME = new Column(PERIODIC_QUERY_METADATA_CF, "startTime");
+    public static final Column PERIODIC_QUERY_TIMEUNIT = new Column(PERIODIC_QUERY_METADATA_CF, "timeUnit");
+    public static final Column PERIODIC_QUERY_TEMPORAL_VARIABLE = new Column(PERIODIC_QUERY_METADATA_CF, "temporalVariable");
     
     // Join Metadata columns.
     public static final Column JOIN_NODE_ID = new Column(JOIN_METADATA_CF, "nodeId");
@@ -220,16 +220,16 @@ public class FluoQueryColumns {
         /**
          * The columns a {@link PeriodicBinMetadata} object's fields are stored within.
          */
-        PERIODIC_BIN_COLUMNS(
-                Arrays.asList(PERIODIC_BIN_NODE_ID,
-                        PERIODIC_BIN_VARIABLE_ORDER,
-                        PERIODIC_BIN_PERIOD,
-                        PERIODIC_BIN_WINDOWSIZE,
-                        PERIODIC_BIN_TIMEUNIT,
-                        PERIODIC_BIN_TEMPORAL_VARIABLE,
-                        PERIODIC_BIN_STARTTIME,
-                        PERIODIC_BIN_PARENT_NODE_ID,
-                        PERIODIC_BIN_CHILD_NODE_ID)),
+        PERIODIC_QUERY_COLUMNS(
+                Arrays.asList(PERIODIC_QUERY_NODE_ID,
+                        PERIODIC_QUERY_VARIABLE_ORDER,
+                        PERIODIC_QUERY_PERIOD,
+                        PERIODIC_QUERY_WINDOWSIZE,
+                        PERIODIC_QUERY_TIMEUNIT,
+                        PERIODIC_QUERY_TEMPORAL_VARIABLE,
+                        PERIODIC_QUERY_STARTTIME,
+                        PERIODIC_QUERY_PARENT_NODE_ID,
+                        PERIODIC_QUERY_CHILD_NODE_ID)),
 
         /**
          * The columns a {@link FilterMetadata} object's fields are stored within.

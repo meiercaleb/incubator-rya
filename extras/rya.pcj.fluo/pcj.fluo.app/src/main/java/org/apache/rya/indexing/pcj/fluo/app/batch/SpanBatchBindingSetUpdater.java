@@ -42,7 +42,7 @@ public class SpanBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
 
     @Override
     public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) {
-
+        super.processBatch(tx, nodeId, batch);
         Preconditions.checkArgument(batch instanceof SpanBatchDeleteInformation);
         SpanBatchDeleteInformation spanBatch = (SpanBatchDeleteInformation) batch;
         Task task = spanBatch.getTask();

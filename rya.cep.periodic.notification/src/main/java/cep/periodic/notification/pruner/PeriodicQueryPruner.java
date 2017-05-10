@@ -87,7 +87,7 @@ public class PeriodicQueryPruner implements BinPruner, Runnable {
             ids.add(nodeId);
             getIds(sx, sx.get(Bytes.of(nodeId), FluoQueryColumns.FILTER_CHILD_NODE_ID).toString(), ids);
             break;
-        case PERIODIC_BIN:
+        case PERIODIC_QUERY:
             ids.add(nodeId);
             break;
         case QUERY:

@@ -26,7 +26,7 @@ public class BatchInformationSerializerTest {
     public void testSpanBatchInformationSerialization() {
 
         SpanBatchDeleteInformation batch = SpanBatchDeleteInformation.builder().setBatchSize(1000)
-                .setColumn(FluoQueryColumns.PERIODIC_BIN_BINDING_SET).setSpan(Span.prefix(Bytes.of("prefix"))).build();
+                .setColumn(FluoQueryColumns.PERIODIC_QUERY_BINDING_SET).setSpan(Span.prefix(Bytes.of("prefix"))).build();
         System.out.println(batch);
         byte[] batchBytes = BatchInformationSerializer.toBytes(batch);
         Optional<BatchInformation> decodedBatch = BatchInformationSerializer.fromBytes(batchBytes);
@@ -43,7 +43,7 @@ public class BatchInformationSerializerTest {
         VisibilityBindingSet vBis = new VisibilityBindingSet(bs, "FOUO");
         
         JoinBatchInformation batch = JoinBatchInformation.builder().setBatchSize(1000).setTask(Task.Update)
-                .setColumn(FluoQueryColumns.PERIODIC_BIN_BINDING_SET).setSpan(Span.prefix(Bytes.of("prefix346")))
+                .setColumn(FluoQueryColumns.PERIODIC_QUERY_BINDING_SET).setSpan(Span.prefix(Bytes.of("prefix346")))
                 .setJoinType(JoinType.LEFT_OUTER_JOIN).setSide(Side.RIGHT).setVarOrder(new VariableOrder(Arrays.asList("a", "b")))
                 .setBs(vBis).build();
         

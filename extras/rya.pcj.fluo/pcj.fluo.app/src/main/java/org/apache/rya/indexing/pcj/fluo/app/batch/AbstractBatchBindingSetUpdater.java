@@ -1,4 +1,6 @@
 package org.apache.rya.indexing.pcj.fluo.app.batch;
+import org.apache.fluo.api.client.TransactionBase;
+import org.apache.fluo.api.data.Bytes;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,6 +21,7 @@ package org.apache.rya.indexing.pcj.fluo.app.batch;
  */
 import org.apache.fluo.api.data.RowColumn;
 import org.apache.fluo.api.data.Span;
+import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 
 public abstract class AbstractBatchBindingSetUpdater implements BatchBindingSetUpdater {
 
@@ -32,6 +35,15 @@ public abstract class AbstractBatchBindingSetUpdater implements BatchBindingSetU
      */
     public Span getNewSpan(RowColumn newStart, Span oldSpan) {
         return new Span(newStart, oldSpan.isStartInclusive(), oldSpan.getEnd(), oldSpan.isEndInclusive());
+    }
+    
+    /**
+     * Cleans up old batch job.  This method is meant to be called by any overriding method
+     * to clean up old batch tasks.
+     */
+    @Override
+    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) {
+        tx.delete(Bytes.of(nodeId), FluoQueryColumns.BATCH_COLUMN);
     }
 
 

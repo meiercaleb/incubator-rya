@@ -41,7 +41,7 @@ public class SpanBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
     private static final Logger log = Logger.getLogger(SpanBatchBindingSetUpdater.class);
 
     @Override
-    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) {
+    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) throws Exception {
         super.processBatch(tx, nodeId, batch);
         Preconditions.checkArgument(batch instanceof SpanBatchDeleteInformation);
         SpanBatchDeleteInformation spanBatch = (SpanBatchDeleteInformation) batch;

@@ -1,18 +1,16 @@
 package org.apache.rya.indexing.pcj.fluo.app;
 
-import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.NODEID_BS_DELIM;
-
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.fluo.api.client.TransactionBase;
+import org.apache.fluo.api.data.Bytes;
 import org.apache.fluo.api.data.Column;
 import org.apache.log4j.Logger;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicQueryMetadata;
-import org.apache.rya.indexing.pcj.storage.accumulo.BindingSetStringConverter;
+import org.apache.rya.indexing.pcj.fluo.app.util.RowKeyUtil;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
-import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSetStringConverter;
 import org.openrdf.model.Literal;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
@@ -32,21 +30,22 @@ public class PeriodicQueryUpdater {
     private static final Logger log = Logger.getLogger(PeriodicQueryUpdater.class);
     public static final String BIN_ID = "PeriodEndTime";
     private static final ValueFactory vf = new ValueFactoryImpl();
-    private static final BindingSetStringConverter idConverter = new BindingSetStringConverter();
-    private static final VisibilityBindingSetStringConverter valueConverter = new VisibilityBindingSetStringConverter();
+    private static final VisibilityBindingSetSerDe BS_SERDE = new VisibilityBindingSetSerDe();
 
 
-    public void updatePeriodicBinResults(TransactionBase tx, VisibilityBindingSet bs, PeriodicQueryMetadata metadata) {
+    public void updatePeriodicBinResults(TransactionBase tx, VisibilityBindingSet bs, PeriodicQueryMetadata metadata) throws Exception {
         Set<Long> binIds = getBinEndTimes(metadata, bs);
         for(Long id: binIds) {
+            //create binding set value bytes
             QueryBindingSet binnedBs = new QueryBindingSet(bs);
             binnedBs.addBinding(BIN_ID, vf.createLiteral(id));
-            String binnedBindingSetStringId = idConverter.convert(binnedBs, metadata.getVariableOrder());
-            String binnedBindingSetStringValue = valueConverter.convert(binnedBs, metadata.getVariableOrder());
-            String row = metadata.getNodeId() + NODEID_BS_DELIM + binnedBindingSetStringId;
+            VisibilityBindingSet visibilityBindingSet = new VisibilityBindingSet(binnedBs, bs.getVisibility());
+            Bytes periodicBsBytes = BS_SERDE.serialize(visibilityBindingSet);
+            
+            //create row 
+            final Bytes resultRow = RowKeyUtil.makeRowKey(metadata.getNodeId(), metadata.getVariableOrder(), binnedBs);
             Column col = FluoQueryColumns.PERIODIC_QUERY_BINDING_SET;
-            String value = binnedBindingSetStringValue;
-            tx.set(row, col, value);
+            tx.set(resultRow, col, periodicBsBytes);
         }
     }
 
@@ -80,7 +79,7 @@ public class PeriodicQueryUpdater {
      * @param periodTime 
      * @return - smallest period end time greater than the eventDateTime
      */
-    private long getFirstBinEndTime(long eventDateTime, long startTime, int periodTime) {
+    private long getFirstBinEndTime(long eventDateTime, long startTime, long periodTime) {
         Preconditions.checkArgument(startTime < eventDateTime);
         return ((eventDateTime - startTime) / periodTime + 1) * periodTime + startTime;
     }
@@ -94,10 +93,10 @@ public class PeriodicQueryUpdater {
      * @param periodTime
      * @return Set of period bin end times
      */
-    private Set<Long> getEndTimes(long eventDateTime, long startTime, int windowSize, int periodTime) {
+    private Set<Long> getEndTimes(long eventDateTime, long startTime, long windowSize, long periodTime) {
         Set<Long> binIds = new HashSet<>();
         long firstBinEndTime = getFirstBinEndTime(eventDateTime, startTime, periodTime);
-        int numBins = 0;
+        long numBins = 0;
         if (windowSize % periodTime == 0) {
             numBins = windowSize / periodTime - 1;
         } else {
@@ -109,5 +108,6 @@ public class PeriodicQueryUpdater {
         }
         return binIds;
     }
+    
 
 }

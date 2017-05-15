@@ -39,6 +39,7 @@ import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -182,8 +183,8 @@ public class FluoQueryMetadataDAO {
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_VARIABLE_ORDER, metadata.getVariableOrder().toString());
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_PARENT_NODE_ID, metadata.getParentNodeId());
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_CHILD_NODE_ID, metadata.getChildNodeId());
-        tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_PERIOD, Integer.toString(metadata.getPeriod()));
-        tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_WINDOWSIZE, Integer.toString(metadata.getWindowSize()));
+        tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_PERIOD, Double.toString(metadata.getPeriod()));
+        tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_WINDOWSIZE, Double.toString(metadata.getWindowSize()));
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_TIMEUNIT, metadata.getUnit().name());
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_STARTTIME, Long.toString(metadata.getStartTime()));
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_TEMPORAL_VARIABLE, metadata.getTemporalVariable());
@@ -228,7 +229,7 @@ public class FluoQueryMetadataDAO {
         final String timeUnit = values.get(FluoQueryColumns.PERIODIC_QUERY_TIMEUNIT);
 
         return PeriodicQueryMetadata.builder().setNodeId(nodeId).setVarOrder(varOrder).setParentNodeId(parentNodeId)
-                .setChildNodeId(childNodeId).setWindowSize(Integer.parseInt(window)).setPeriod(Integer.parseInt(period))
+                .setChildNodeId(childNodeId).setWindowSize(Long.parseLong(window)).setPeriod(Long.parseLong(period))
                 .setTemporalVariable(temporalVariable).setStartTime(Long.parseLong(start)).setUnit(TimeUnit.valueOf(timeUnit));
 
     }
@@ -464,6 +465,11 @@ public class FluoQueryMetadataDAO {
 
         // Write the rest of the metadata objects.
         write(tx, query.getQueryMetadata());
+        
+        Optional<PeriodicQueryMetadata> periodicMetadata = query.getPeriodicQueryMetadata();
+        if(periodicMetadata.isPresent()) {
+            write(tx, periodicMetadata.get());
+        }
 
         for (final FilterMetadata filter : query.getFilterMetadata()) {
             write(tx, filter);
@@ -548,7 +554,7 @@ public class FluoQueryMetadataDAO {
             builder.addPeriodicQueryMetadata(periodicQueryBuilder);
 
             // Add it's child's metadata.
-            addChildMetadata(sx, builder, filterBuilder.build().getChildNodeId());
+            addChildMetadata(sx, builder, periodicQueryBuilder.build().getChildNodeId());
             break;
         case AGGREGATION:
             // Add this node's metadata.

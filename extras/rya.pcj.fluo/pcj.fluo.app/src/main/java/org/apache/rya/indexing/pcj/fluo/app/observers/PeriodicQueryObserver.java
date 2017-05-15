@@ -1,19 +1,19 @@
 package org.apache.rya.indexing.pcj.fluo.app.observers;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.fluo.api.client.TransactionBase;
+import org.apache.fluo.api.data.Bytes;
 import org.apache.rya.indexing.pcj.fluo.app.BindingSetRow;
+import org.apache.rya.indexing.pcj.fluo.app.VisibilityBindingSetSerDe;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryMetadataDAO;
 import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicQueryMetadata;
-import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
-import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSetStringConverter;
 
 public class PeriodicQueryObserver extends BindingSetUpdater {
 
-    private final VisibilityBindingSetStringConverter converter = new VisibilityBindingSetStringConverter();
+    private static final VisibilityBindingSetSerDe BS_SERDE = new VisibilityBindingSetSerDe();
 
     private final FluoQueryMetadataDAO queryDao = new FluoQueryMetadataDAO();
 
@@ -23,21 +23,23 @@ public class PeriodicQueryObserver extends BindingSetUpdater {
     }
 
     @Override
-    public Observation parseObservation(final TransactionBase tx, final BindingSetRow parsedRow) {
-        checkNotNull(parsedRow);
+    public Observation parseObservation(final TransactionBase tx, final Bytes row) throws Exception {
+        requireNonNull(tx);
+        requireNonNull(row);
 
         // Read the Join metadata.
-        final String periodicBinNodeId = parsedRow.getNodeId();
+        final String periodicBinNodeId = BindingSetRow.make(row).getNodeId();
         final PeriodicQueryMetadata periodicBinMetadata = queryDao.readPeriodicQueryMetadata(tx, periodicBinNodeId);
 
-        // Read the Binding Set that was just emmitted by the Join.
-        final VariableOrder periodicBinVarOrder = periodicBinMetadata.getVariableOrder();
-        final VisibilityBindingSet periodicBinBindingSet = (VisibilityBindingSet) converter.convert(parsedRow.getBindingSetString(), periodicBinVarOrder);
+        // Read the Visibility Binding Set from the Value.
+        final Bytes valueBytes = tx.get(row, FluoQueryColumns.PERIODIC_QUERY_BINDING_SET);
+        final VisibilityBindingSet periodicBinBindingSet = BS_SERDE.deserialize(valueBytes);
 
         // Figure out which node needs to handle the new metadata.
         final String parentNodeId = periodicBinMetadata.getParentNodeId();
 
         return new Observation(periodicBinNodeId, periodicBinBindingSet, parentNodeId);
     }
+    
 
 }

@@ -24,6 +24,7 @@ import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.FI
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.JOIN_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.QUERY_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.SP_PREFIX;
+import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.PERIODIC_QUERY_PREFIX;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,10 +42,12 @@ import org.apache.rya.indexing.pcj.fluo.app.NodeType;
 import org.apache.rya.indexing.pcj.fluo.app.query.AggregationMetadata.AggregationElement;
 import org.apache.rya.indexing.pcj.fluo.app.query.AggregationMetadata.AggregationType;
 import org.apache.rya.indexing.pcj.fluo.app.query.JoinMetadata.JoinType;
+import org.apache.rya.indexing.pcj.fluo.app.util.PeriodicQueryUtil;
 import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
 import org.openrdf.query.algebra.AggregateOperator;
 import org.openrdf.query.algebra.Extension;
 import org.openrdf.query.algebra.Filter;
+import org.openrdf.query.algebra.FunctionCall;
 import org.openrdf.query.algebra.Group;
 import org.openrdf.query.algebra.GroupElem;
 import org.openrdf.query.algebra.Join;
@@ -168,16 +171,17 @@ public class SparqlFluoQueryBuilder {
                 prefix = QUERY_PREFIX;
             } else if(node instanceof Extension) {
                 prefix = AGGREGATION_PREFIX;
+            } else if(node instanceof PeriodicQueryNode) {
+                prefix = PERIODIC_QUERY_PREFIX;
             } else {
                 throw new IllegalArgumentException("Node must be of type {StatementPattern, Join, Filter, Extension, Projection} but was " + node.getClass());
             }
 
-            // Create the unique portion of the id.
             final String unique = UUID.randomUUID().toString().replaceAll("-", "");
-
             // Put them together to create the Node ID.
             return prefix + "_" + unique;
         }
+        
     }
 
     /**
@@ -185,7 +189,7 @@ public class SparqlFluoQueryBuilder {
      * the node to a {@link FluoQuery.Builder}. This information is used by the
      * application's observers to incrementally update a PCJ.
      */
-    private static class NewQueryVisitor extends QueryModelVisitorBase<RuntimeException> {
+    public static class NewQueryVisitor extends QueryModelVisitorBase<RuntimeException> {
 
         private final NodeIds nodeIds;
         private final FluoQuery.Builder fluoQueryBuilder;
@@ -359,6 +363,7 @@ public class SparqlFluoQueryBuilder {
 
         @Override
         public void meet(final Filter node) {
+            
             // Get or create a builder for this node populated with the known metadata.
             final String filterId = nodeIds.getOrMakeId(node);
 
@@ -387,6 +392,43 @@ public class SparqlFluoQueryBuilder {
             // Walk to the next node.
             super.meet(node);
         }
+        
+        public void meetOther(final QueryModelNode qNode) {
+            if (qNode instanceof PeriodicQueryNode) {
+                PeriodicQueryNode node = (PeriodicQueryNode) qNode;
+                // Get or create a builder for this node populated with the
+                // known metadata.
+                final String periodicId = nodeIds.getOrMakeId(node);
+
+                PeriodicQueryMetadata.Builder periodicBuilder = fluoQueryBuilder.getPeriodicQueryBuilder().orNull();
+                if (periodicBuilder == null) {
+                    periodicBuilder = PeriodicQueryMetadata.builder();
+                    periodicBuilder.setNodeId(periodicId);
+                    fluoQueryBuilder.addPeriodicQueryMetadata(periodicBuilder);
+                }
+
+                final QueryModelNode child = node.getArg();
+                if (child == null) {
+                    throw new IllegalArgumentException("Filter arg connot be null.");
+                }
+
+                final String childNodeId = nodeIds.getOrMakeId(child);
+                periodicBuilder.setChildNodeId(childNodeId);
+
+                // Update the child node's metadata.
+                final Set<String> childVars = getVars((TupleExpr) child);
+                final VariableOrder childVarOrder = new VariableOrder(childVars);
+                setChildMetadata(childNodeId, childVarOrder, periodicId);
+
+                // update variable order of this node and all ancestors to
+                // include BIN_ID binding as
+                // first variable in the ordering
+                PeriodicQueryUtil.updateVarOrdersToIncludeBin(fluoQueryBuilder, periodicId);
+                // Walk to the next node.
+                node.getArg().visit(this);
+            } 
+        }
+        
 
         @Override
         public void meet(final Projection node) {
@@ -478,6 +520,16 @@ public class SparqlFluoQueryBuilder {
                     aggregationBuilder.setParentNodeId(parentNodeId);
                     break;
 
+                case PERIODIC_QUERY:
+                    PeriodicQueryMetadata.Builder periodicQueryBuilder = fluoQueryBuilder.getPeriodicQueryBuilder().orNull();
+                    if(periodicQueryBuilder == null) {
+                        periodicQueryBuilder = PeriodicQueryMetadata.builder();
+                        periodicQueryBuilder.setNodeId(childNodeId);
+                        fluoQueryBuilder.addPeriodicQueryMetadata(periodicQueryBuilder);
+                    }
+                    periodicQueryBuilder.setVarOrder(childVarOrder);
+                    periodicQueryBuilder.setParentNodeId(parentNodeId);
+                    break;
                 case QUERY:
                     throw new IllegalArgumentException("QUERY nodes do not have children.");
                 default:

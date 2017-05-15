@@ -22,13 +22,13 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
 
     private String parentNodeId;
     private String childNodeId;
-    private int windowSize;
-    private int period;
+    private long windowSize;
+    private long period;
     private TimeUnit unit;
     private long startTime;
     private String temporalVariable;
 
-    public PeriodicQueryMetadata(String nodeId, VariableOrder varOrder, String parentNodeId, String childNodeId, int windowSize, int period,
+    public PeriodicQueryMetadata(String nodeId, VariableOrder varOrder, String parentNodeId, String childNodeId, long windowSize, long period,
             TimeUnit unit, long startTime, String temporalVariable) {
         super(nodeId, varOrder);
         Preconditions.checkNotNull(parentNodeId);
@@ -60,18 +60,30 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
         return temporalVariable;
     }
 
-    public int getWindowSize() {
+    /**
+     * @return window duration in millis
+     */
+    public long getWindowSize() {
         return windowSize;
     }
 
-    public int getPeriod() {
+    /**
+     * @return period duration in millis
+     */
+    public long getPeriod() {
         return period;
     }
 
+    /**
+     * @return {@link TimeUnit} for window duration and period duration
+     */
     public TimeUnit getUnit() {
         return unit;
     }
 
+    /**
+     * @return start time in millis
+     */
     public long getStartTime() {
         return startTime;
     }
@@ -128,8 +140,8 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
         private VariableOrder varOrder;
         private String parentNodeId;
         private String childNodeId;
-        private int windowSize;
-        private int period;
+        private long windowSize;
+        private long period;
         private TimeUnit unit;
         private long startTime;
         public String temporalVariable;
@@ -139,27 +151,40 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
             return this;
         }
         
+        public String getNodeId() {
+            return nodeId;
+        }
+        
         public Builder setVarOrder(VariableOrder varOrder) {
             this.varOrder = varOrder;
             return this;
+        }
+        
+        public VariableOrder getVarOrder() {
+            return varOrder;
         }
         
         public Builder setParentNodeId(String parentNodeId) {
             this.parentNodeId = parentNodeId;
             return this;
         }
+      
+        public String getParentNodeId() {
+            return parentNodeId;
+        }
 
         public Builder setChildNodeId(String childNodeId) {
             this.childNodeId = childNodeId;
             return this;
         }
+        
 
-        public Builder setWindowSize(int windowSize) {
+        public Builder setWindowSize(long windowSize) {
             this.windowSize = windowSize;
             return this;
         }
 
-        public Builder setPeriod(int period) {
+        public Builder setPeriod(long period) {
             this.period = period;
             return this;
         }

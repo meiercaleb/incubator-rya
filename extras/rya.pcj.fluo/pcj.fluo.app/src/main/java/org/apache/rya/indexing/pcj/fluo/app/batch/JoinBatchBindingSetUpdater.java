@@ -1,24 +1,4 @@
 package org.apache.rya.indexing.pcj.fluo.app.batch;
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.NODEID_BS_DELIM;
-
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
@@ -37,15 +17,15 @@ import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.IterativeJoin;
 import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.LeftOuterJoin;
 import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.NaturalJoin;
 import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.Side;
+import org.apache.rya.indexing.pcj.fluo.app.VisibilityBindingSetSerDe;
 import org.apache.rya.indexing.pcj.fluo.app.batch.BatchInformation.Task;
 import org.apache.rya.indexing.pcj.fluo.app.batch.serializer.BatchInformationSerializer;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryMetadataDAO;
-import org.apache.rya.indexing.pcj.storage.accumulo.BindingSetStringConverter;
+import org.apache.rya.indexing.pcj.fluo.app.query.JoinMetadata;
+import org.apache.rya.indexing.pcj.fluo.app.util.RowKeyUtil;
 import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
-import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSetStringConverter;
-import org.openrdf.query.BindingSet;
 
 import com.google.common.base.Preconditions;
 
@@ -56,8 +36,7 @@ import com.google.common.base.Preconditions;
 public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
 
     private static final Logger log = Logger.getLogger(JoinBatchBindingSetUpdater.class);
-    private static final VisibilityBindingSetStringConverter value_converter = new VisibilityBindingSetStringConverter();
-    private static final BindingSetStringConverter row_converter = new BindingSetStringConverter();
+    private static final VisibilityBindingSetSerDe BS_SERDE = new VisibilityBindingSetSerDe();
     private static final FluoQueryMetadataDAO dao = new FluoQueryMetadataDAO();
 
     /**
@@ -70,9 +49,10 @@ public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
      * entries that need to be updated exceeds the batch size, the row of the
      * first unprocessed BindingSets is used to create a new JoinBatch job to
      * process the remaining BindingSets.
+     * @throws Exception 
      */
     @Override
-    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) {
+    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) throws Exception {
         super.processBatch(tx, nodeId, batch);
         Preconditions.checkArgument(batch instanceof JoinBatchInformation);
         JoinBatchInformation joinBatch = (JoinBatchInformation) batch;
@@ -104,15 +84,16 @@ public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
         }
 
         // Insert the new join binding sets to the Fluo table.
-        final VariableOrder joinVarOrder = dao.readJoinMetadata(tx, nodeId).getVariableOrder();
+        final JoinMetadata joinMetadata = dao.readJoinMetadata(tx, nodeId);
+        final VariableOrder joinVarOrder = joinMetadata.getVariableOrder();
         while (newJoinResults.hasNext()) {
-            final BindingSet newJoinResult = newJoinResults.next();
-            final String joinBindingSetStringId = row_converter.convert(newJoinResult, joinVarOrder);
-            final String joinBindingSetStringValue = value_converter.convert(newJoinResult, joinVarOrder);
-            final String row = nodeId + NODEID_BS_DELIM + joinBindingSetStringId;
+            final VisibilityBindingSet newJoinResult = newJoinResults.next();
+            //create BindingSet value
+            Bytes bsBytes = BS_SERDE.serialize(newJoinResult);
+            //make rowId
+            RowKeyUtil.makeRowKey(nodeId, joinVarOrder, newJoinResult);
             final Column col = FluoQueryColumns.JOIN_BINDING_SET;
-            final String value = joinBindingSetStringValue;
-            processTask(tx, task, row, col, value);
+            processTask(tx, task, bsBytes.toString(), col, bsBytes.toString());
         }
 
         // if batch limit met, there are additional entries to process
@@ -151,13 +132,13 @@ public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
      * @param batch - batch order to be processed
      * @param bsSet- set that batch results are added to
      * @return Set - containing results of sibling scan.
+     * @throws Exception 
      */
-    private Optional<RowColumn> fillSiblingBatch(TransactionBase tx, JoinBatchInformation batch, Set<VisibilityBindingSet> bsSet) {
+    private Optional<RowColumn> fillSiblingBatch(TransactionBase tx, JoinBatchInformation batch, Set<VisibilityBindingSet> bsSet) throws Exception {
 
         Span span = batch.getSpan();
         Column column = batch.getColumn();
         int batchSize = batch.getBatchSize();
-        VariableOrder varOrder = batch.getVarOrder();
 
         RowScanner rs = tx.scanner().over(span).fetch(column).byRow().build();
         Iterator<ColumnScanner> colScannerIter = rs.iterator();
@@ -173,7 +154,7 @@ public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
                     batchLimitMet = true;
                     break;
                 }
-                bsSet.add(value_converter.convert(iter.next().getsValue(), varOrder));
+                bsSet.add(BS_SERDE.deserialize(Bytes.of(iter.next().getsValue())));
             }
         }
 

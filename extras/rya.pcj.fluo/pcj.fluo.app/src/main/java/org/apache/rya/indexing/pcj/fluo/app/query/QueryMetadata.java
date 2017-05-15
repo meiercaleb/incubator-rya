@@ -142,6 +142,10 @@ public class QueryMetadata extends CommonNodeMetadata {
         public Builder(final String nodeId) {
             this.nodeId = checkNotNull(nodeId);
         }
+        
+        public String getNodeId() {
+            return nodeId;
+        }
 
         /**
          * Set the variable order of binding sets that are emitted by this node.
@@ -152,6 +156,13 @@ public class QueryMetadata extends CommonNodeMetadata {
         public Builder setVariableOrder(@Nullable final VariableOrder varOrder) {
             this.varOrder = varOrder;
             return this;
+        }
+        
+        /**
+         * @return the variable order of binding sets that are emitted by this node
+         */
+        public VariableOrder getVariableOrder() {
+            return varOrder;
         }
 
         /**
@@ -174,6 +185,10 @@ public class QueryMetadata extends CommonNodeMetadata {
         public Builder setChildNodeId(@Nullable final String childNodeId) {
             this.childNodeId = childNodeId;
             return this;
+        }
+        
+        public String getChildNodeId() {
+            return childNodeId;
         }
 
         /**

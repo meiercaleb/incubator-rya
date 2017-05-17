@@ -19,18 +19,17 @@ public class CommandNotificationSerializerTest {
     @Test
     public void basicSerializationTest() {
         PeriodicNotification notification = PeriodicNotification.builder().id(UUID.randomUUID().toString()).period(24)
-                .periodTimeUnit(TimeUnit.DAYS).initialDelay(1).initialDelayTimeUnit(TimeUnit.DAYS).build();
+                .timeUnit(TimeUnit.DAYS).initialDelay(1).build();
         CommandNotification command = new CommandNotification(Command.ADD, notification);
         Assert.assertEquals(command, serializer.fromBytes(serializer.toBytes(command)));
 
         PeriodicNotification notification1 = PeriodicNotification.builder().id(UUID.randomUUID().toString()).period(32)
-                .periodTimeUnit(TimeUnit.SECONDS).initialDelay(15).initialDelayTimeUnit(TimeUnit.SECONDS).build();
+                .timeUnit(TimeUnit.SECONDS).initialDelay(15).build();
         CommandNotification command1 = new CommandNotification(Command.ADD, notification1);
         Assert.assertEquals(command1, serializer.fromBytes(serializer.toBytes(command1)));
 
         PeriodicNotification notification2 = PeriodicNotification.builder().id(UUID.randomUUID().toString()).period(32)
-                .periodTimeUnit(TimeUnit.SECONDS).initialDelay(15).initialDelayTimeUnit(TimeUnit.SECONDS)
-                .message("Hello!").build();
+                .timeUnit(TimeUnit.SECONDS).initialDelay(15).build();
         CommandNotification command2 = new CommandNotification(Command.ADD, notification2);
         Assert.assertEquals(command2, serializer.fromBytes(serializer.toBytes(command2)));
 

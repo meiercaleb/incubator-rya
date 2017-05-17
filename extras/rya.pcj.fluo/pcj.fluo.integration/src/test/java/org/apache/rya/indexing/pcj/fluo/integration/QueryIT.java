@@ -22,6 +22,8 @@ import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -30,6 +32,9 @@ import javax.xml.datatype.DatatypeFactory;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.fluo.api.client.FluoClient;
+import org.apache.fluo.core.client.FluoClientImpl;
+import org.apache.fluo.recipes.test.FluoITHelper;
 import org.apache.rya.api.client.RyaClient;
 import org.apache.rya.api.client.accumulo.AccumuloConnectionDetails;
 import org.apache.rya.api.client.accumulo.AccumuloRyaClientFactory;
@@ -432,6 +437,192 @@ public class QueryIT extends RyaExportITBase {
         // Verify the end results of the query match the expected results.
         runTest(sparql, statements, expectedResults);
     }
+    
+    
+    @Test
+    public void periodicQueryTestWithoutAggregation() throws Exception {
+        String query = "prefix function: <http://org.apache.rya/function#> " //n
+                + "prefix time: <http://www.w3.org/2006/time#> " //n
+                + "select ?id ?time where {" //n
+                + "Filter(function:periodic(?time, 2, .5, time:hours)) " //n
+                + "?obs <uri:hasTime> ?time. " //n
+                + "?obs <uri:hasId> ?id }"; //n
+
+        // Create the Statements that will be loaded into Rya.
+        final ValueFactory vf = new ValueFactoryImpl();
+        final DatatypeFactory dtf = DatatypeFactory.newInstance();
+        ZonedDateTime time = ZonedDateTime.now();
+        long currentTime = time.toInstant().toEpochMilli();
+        
+        ZonedDateTime zTime1 = time.minusMinutes(29);
+        String time1 = zTime1.format(DateTimeFormatter.ISO_INSTANT);
+        
+        ZonedDateTime zTime2 = zTime1.minusMinutes(28);
+        String time2 = zTime2.format(DateTimeFormatter.ISO_INSTANT);
+        
+        ZonedDateTime zTime3 = zTime2.minusMinutes(27);
+        String time3 = zTime3.format(DateTimeFormatter.ISO_INSTANT);
+        
+        ZonedDateTime zTime4 = zTime3.minusMinutes(26);
+        String time4 = zTime4.format(DateTimeFormatter.ISO_INSTANT);
+        
+        final Collection<Statement> statements = Sets.newHashSet(
+                vf.createStatement(vf.createURI("urn:obs_1"), vf.createURI("uri:hasTime"), vf.createLiteral(dtf.newXMLGregorianCalendar(time1))),
+                vf.createStatement(vf.createURI("urn:obs_1"), vf.createURI("uri:hasId"), vf.createLiteral("id_1")),
+                vf.createStatement(vf.createURI("urn:obs_2"), vf.createURI("uri:hasTime"), vf.createLiteral(dtf.newXMLGregorianCalendar(time2))),
+                vf.createStatement(vf.createURI("urn:obs_2"), vf.createURI("uri:hasId"), vf.createLiteral("id_2")),
+                vf.createStatement(vf.createURI("urn:obs_3"), vf.createURI("uri:hasTime"), vf.createLiteral(dtf.newXMLGregorianCalendar(time3))),
+                vf.createStatement(vf.createURI("urn:obs_3"), vf.createURI("uri:hasId"), vf.createLiteral("id_3")),
+                vf.createStatement(vf.createURI("urn:obs_4"), vf.createURI("uri:hasTime"), vf.createLiteral(dtf.newXMLGregorianCalendar(time4))),
+                vf.createStatement(vf.createURI("urn:obs_4"), vf.createURI("uri:hasId"), vf.createLiteral("id_4"))
+                );
+
+        // Create the expected results of the SPARQL query once the PCJ has been computed.
+        final Set<BindingSet> expectedResults = new HashSet<>();
+
+        long period = 1800000;
+        long binId = (currentTime/period)*period;
+        
+        MapBindingSet bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_1"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId));
+        expectedResults.add(bs);
+        
+        bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_1"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId + period));
+        expectedResults.add(bs);
+        
+        bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_1"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId + 2*period));
+        expectedResults.add(bs);
+        
+        bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_1"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId + 3*period));
+        expectedResults.add(bs);
+
+        bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_2"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId));
+        expectedResults.add(bs);
+        
+        bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_2"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId + period));
+        expectedResults.add(bs);
+        
+        bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_2"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId + 2*period));
+        expectedResults.add(bs);
+        
+        bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_3"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId));
+        expectedResults.add(bs);
+        
+        bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_3"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId + period));
+        expectedResults.add(bs);
+        
+        bs = new MapBindingSet();
+        bs.addBinding("id", vf.createLiteral("id_4"));
+        bs.addBinding("internalNotificationId", vf.createLiteral(binId));
+        expectedResults.add(bs);
+
+        // Verify the end results of the query match the expected results.
+        runTest(query, statements, expectedResults);
+    }
+    
+    
+//    @Test
+    public void periodicQueryTestWithAggregation() throws Exception {
+        String query = "prefix function: <http://org.apache.rya/function#> " //n
+                + "prefix time: <http://www.w3.org/2006/time#> " //n
+                + "select (count(?obs) as ?total) where {" //n
+                + "Filter(function:periodic(?time, 12.4, 6.2,time:hours)) " //n
+                + "?obs <uri:hasTime> ?time. " //n
+                + "?obs <uri:hasLattitude> ?lat }"; //n
+
+        // Create the Statements that will be loaded into Rya.
+        final ValueFactory vf = new ValueFactoryImpl();
+        final Collection<Statement> statements = Sets.newHashSet(
+                vf.createStatement(vf.createURI("http://Alice"), vf.createURI("http://hasAge"), vf.createLiteral(18)),
+                vf.createStatement(vf.createURI("http://Bob"), vf.createURI("http://hasAge"), vf.createLiteral(30)),
+                vf.createStatement(vf.createURI("http://Charlie"), vf.createURI("http://hasAge"), vf.createLiteral(14)),
+                vf.createStatement(vf.createURI("http://David"), vf.createURI("http://hasAge"), vf.createLiteral(16)),
+                vf.createStatement(vf.createURI("http://Eve"), vf.createURI("http://hasAge"), vf.createLiteral(35)),
+
+                vf.createStatement(vf.createURI("http://Alice"), vf.createURI("http://playsSport"), vf.createLiteral("Soccer")),
+                vf.createStatement(vf.createURI("http://Bob"), vf.createURI("http://playsSport"), vf.createLiteral("Soccer")),
+                vf.createStatement(vf.createURI("http://Charlie"), vf.createURI("http://playsSport"), vf.createLiteral("Basketball")),
+                vf.createStatement(vf.createURI("http://Charlie"), vf.createURI("http://playsSport"), vf.createLiteral("Soccer")),
+                vf.createStatement(vf.createURI("http://David"), vf.createURI("http://playsSport"), vf.createLiteral("Basketball")));
+
+        // Create the expected results of the SPARQL query once the PCJ has been computed.
+        final Set<BindingSet> expectedResults = new HashSet<>();
+
+        MapBindingSet bs = new MapBindingSet();
+        bs.addBinding("name", vf.createURI("http://Alice"));
+        bs.addBinding("age", vf.createLiteral("18", XMLSchema.INTEGER));
+        expectedResults.add(bs);
+
+        bs = new MapBindingSet();
+        bs.addBinding("name", vf.createURI("http://Charlie"));
+        bs.addBinding("age", vf.createLiteral("14", XMLSchema.INTEGER));
+        expectedResults.add(bs);
+
+        // Verify the end results of the query match the expected results.
+        runTest(query, statements, expectedResults);
+    }
+    
+//    @Test
+    public void periodicQueryTestWithAggregationAndGroupBy() throws Exception {
+        String query = "prefix function: <http://org.apache.rya/function#> " //n
+                + "prefix time: <http://www.w3.org/2006/time#> " //n
+                + "select (count(?obs) as ?total) where {" //n
+                + "Filter(function:periodic(?time, 12.4, 6.2,time:hours)) " //n
+                + "?obs <uri:hasTime> ?time. " //n
+                + "?obs <uri:hasLattitude> ?lat }"; //n
+
+        // Create the Statements that will be loaded into Rya.
+        final ValueFactory vf = new ValueFactoryImpl();
+        final Collection<Statement> statements = Sets.newHashSet(
+                vf.createStatement(vf.createURI("http://Alice"), vf.createURI("http://hasAge"), vf.createLiteral(18)),
+                vf.createStatement(vf.createURI("http://Bob"), vf.createURI("http://hasAge"), vf.createLiteral(30)),
+                vf.createStatement(vf.createURI("http://Charlie"), vf.createURI("http://hasAge"), vf.createLiteral(14)),
+                vf.createStatement(vf.createURI("http://David"), vf.createURI("http://hasAge"), vf.createLiteral(16)),
+                vf.createStatement(vf.createURI("http://Eve"), vf.createURI("http://hasAge"), vf.createLiteral(35)),
+
+                vf.createStatement(vf.createURI("http://Alice"), vf.createURI("http://playsSport"), vf.createLiteral("Soccer")),
+                vf.createStatement(vf.createURI("http://Bob"), vf.createURI("http://playsSport"), vf.createLiteral("Soccer")),
+                vf.createStatement(vf.createURI("http://Charlie"), vf.createURI("http://playsSport"), vf.createLiteral("Basketball")),
+                vf.createStatement(vf.createURI("http://Charlie"), vf.createURI("http://playsSport"), vf.createLiteral("Soccer")),
+                vf.createStatement(vf.createURI("http://David"), vf.createURI("http://playsSport"), vf.createLiteral("Basketball")));
+
+        // Create the expected results of the SPARQL query once the PCJ has been computed.
+        final Set<BindingSet> expectedResults = new HashSet<>();
+
+        MapBindingSet bs = new MapBindingSet();
+        bs.addBinding("name", vf.createURI("http://Alice"));
+        bs.addBinding("age", vf.createLiteral("18", XMLSchema.INTEGER));
+        expectedResults.add(bs);
+
+        bs = new MapBindingSet();
+        bs.addBinding("name", vf.createURI("http://Charlie"));
+        bs.addBinding("age", vf.createLiteral("14", XMLSchema.INTEGER));
+        expectedResults.add(bs);
+
+        // Verify the end results of the query match the expected results.
+        runTest(query, statements, expectedResults);
+    }
+    
+    
+    
+    
 
     public void runTest(final String sparql, final Collection<Statement> statements, final Collection<BindingSet> expectedResults) throws Exception {
         requireNonNull(sparql);
@@ -459,6 +650,10 @@ public class QueryIT extends RyaExportITBase {
 
         // Wait for the Fluo application to finish computing the end result.
         super.getMiniFluo().waitForObservers();
+        
+        try(FluoClient client = new FluoClientImpl(super.getFluoConfiguration())) {
+            FluoITHelper.printFluoTable(client);
+        }
 
         // Fetch the value that is stored within the PCJ table.
         try(final PrecomputedJoinStorage pcjStorage = new AccumuloPcjStorage(accumuloConn, RYA_INSTANCE_NAME)) {

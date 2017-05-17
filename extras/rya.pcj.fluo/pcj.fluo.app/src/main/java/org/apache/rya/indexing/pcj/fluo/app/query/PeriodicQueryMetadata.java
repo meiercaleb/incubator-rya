@@ -25,11 +25,10 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
     private long windowSize;
     private long period;
     private TimeUnit unit;
-    private long startTime;
     private String temporalVariable;
 
     public PeriodicQueryMetadata(String nodeId, VariableOrder varOrder, String parentNodeId, String childNodeId, long windowSize, long period,
-            TimeUnit unit, long startTime, String temporalVariable) {
+            TimeUnit unit, String temporalVariable) {
         super(nodeId, varOrder);
         Preconditions.checkNotNull(parentNodeId);
         Preconditions.checkNotNull(childNodeId);
@@ -37,7 +36,6 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
         Preconditions.checkNotNull(unit);
         Preconditions.checkNotNull(period > 0);
         Preconditions.checkArgument(windowSize >= period);
-        Preconditions.checkArgument(startTime > 0);
 
         this.parentNodeId = parentNodeId;
         this.childNodeId = childNodeId;
@@ -45,7 +43,6 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
         this.windowSize = windowSize;
         this.period = period;
         this.unit = unit;
-        this.startTime = startTime;
     }
 
     public String getParentNodeId() {
@@ -81,12 +78,6 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
         return unit;
     }
 
-    /**
-     * @return start time in millis
-     */
-    public long getStartTime() {
-        return startTime;
-    }
 
     public static Builder builder() {
         return new Builder();
@@ -94,7 +85,7 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.getNodeId(), super.getVariableOrder(), childNodeId, parentNodeId, temporalVariable, startTime, period, windowSize, unit);
+        return Objects.hashCode(super.getNodeId(), super.getVariableOrder(), childNodeId, parentNodeId, temporalVariable, period, windowSize, unit);
     }
 
     @Override
@@ -107,7 +98,7 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
             if (super.equals(o)) {
                 PeriodicQueryMetadata metadata = (PeriodicQueryMetadata) o;
                 return new EqualsBuilder().append(childNodeId, metadata.childNodeId).append(parentNodeId, metadata.parentNodeId)
-                        .append(startTime, metadata.startTime).append(windowSize, metadata.windowSize).append(period, metadata.period)
+                        .append(windowSize, metadata.windowSize).append(period, metadata.period)
                         .append(unit, metadata.unit).append(temporalVariable, metadata.temporalVariable).isEquals();
             }
             return false;
@@ -119,12 +110,11 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
     @Override
     public String toString() {
         return new StringBuilder()
-                .append("PeriodicBinMetadata {\n")
+                .append("PeriodicQueryMetadata {\n")
                 .append("    Node ID: " + super.getNodeId() + "\n")
                 .append("    Variable Order: " + super.getVariableOrder() + "\n")
                 .append("    Parent Node ID: " + parentNodeId + "\n")
                 .append("    Child Node ID: " + childNodeId + "\n")
-                .append("    Start Time: " + startTime + "\n")
                 .append("    Period: " + period + "\n")
                 .append("    Window Size: " + windowSize + "\n")
                 .append("    Time Unit: " + unit + "\n")
@@ -143,7 +133,6 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
         private long windowSize;
         private long period;
         private TimeUnit unit;
-        private long startTime;
         public String temporalVariable;
 
         public Builder setNodeId(String nodeId) {
@@ -193,11 +182,6 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
             this.unit = unit;
             return this;
         }
-
-        public Builder setStartTime(long startTime) {
-            this.startTime = startTime;
-            return this;
-        }
         
         public Builder setTemporalVariable(String temporalVariable) {
             this.temporalVariable = temporalVariable;
@@ -205,7 +189,7 @@ public class PeriodicQueryMetadata extends CommonNodeMetadata {
         }
 
         public PeriodicQueryMetadata build() {
-            return new PeriodicQueryMetadata(nodeId, varOrder, parentNodeId, childNodeId, windowSize, period, unit, startTime, temporalVariable);
+            return new PeriodicQueryMetadata(nodeId, varOrder, parentNodeId, childNodeId, windowSize, period, unit, temporalVariable);
         }
     }
 

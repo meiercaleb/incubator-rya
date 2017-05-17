@@ -183,10 +183,9 @@ public class FluoQueryMetadataDAO {
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_VARIABLE_ORDER, metadata.getVariableOrder().toString());
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_PARENT_NODE_ID, metadata.getParentNodeId());
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_CHILD_NODE_ID, metadata.getChildNodeId());
-        tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_PERIOD, Double.toString(metadata.getPeriod()));
-        tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_WINDOWSIZE, Double.toString(metadata.getWindowSize()));
+        tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_PERIOD, Long.toString(metadata.getPeriod()));
+        tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_WINDOWSIZE, Long.toString(metadata.getWindowSize()));
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_TIMEUNIT, metadata.getUnit().name());
-        tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_STARTTIME, Long.toString(metadata.getStartTime()));
         tx.set(rowId, FluoQueryColumns.PERIODIC_QUERY_TEMPORAL_VARIABLE, metadata.getTemporalVariable());
     }
 
@@ -214,8 +213,7 @@ public class FluoQueryMetadataDAO {
         final Map<Column, String> values = sx.gets(rowId, FluoQueryColumns.PERIODIC_QUERY_VARIABLE_ORDER,
                 FluoQueryColumns.PERIODIC_QUERY_PARENT_NODE_ID, FluoQueryColumns.PERIODIC_QUERY_CHILD_NODE_ID,
                 FluoQueryColumns.PERIODIC_QUERY_PERIOD, FluoQueryColumns.PERIODIC_QUERY_WINDOWSIZE,
-                FluoQueryColumns.PERIODIC_QUERY_STARTTIME, FluoQueryColumns.PERIODIC_QUERY_TIMEUNIT,
-                FluoQueryColumns.PERIODIC_QUERY_TEMPORAL_VARIABLE);
+                FluoQueryColumns.PERIODIC_QUERY_TIMEUNIT, FluoQueryColumns.PERIODIC_QUERY_TEMPORAL_VARIABLE);
 
         // Return an object holding them.
         final String varOrderString = values.get(FluoQueryColumns.PERIODIC_QUERY_VARIABLE_ORDER);
@@ -225,12 +223,11 @@ public class FluoQueryMetadataDAO {
         final String temporalVariable = values.get(FluoQueryColumns.PERIODIC_QUERY_TEMPORAL_VARIABLE);
         final String period = values.get(FluoQueryColumns.PERIODIC_QUERY_PERIOD);
         final String window = values.get(FluoQueryColumns.PERIODIC_QUERY_WINDOWSIZE);
-        final String start = values.get(FluoQueryColumns.PERIODIC_QUERY_STARTTIME);
         final String timeUnit = values.get(FluoQueryColumns.PERIODIC_QUERY_TIMEUNIT);
 
         return PeriodicQueryMetadata.builder().setNodeId(nodeId).setVarOrder(varOrder).setParentNodeId(parentNodeId)
                 .setChildNodeId(childNodeId).setWindowSize(Long.parseLong(window)).setPeriod(Long.parseLong(period))
-                .setTemporalVariable(temporalVariable).setStartTime(Long.parseLong(start)).setUnit(TimeUnit.valueOf(timeUnit));
+                .setTemporalVariable(temporalVariable).setUnit(TimeUnit.valueOf(timeUnit));
 
     }
 

@@ -77,9 +77,8 @@ public class TimestampedNotificationProcessor implements NotificationProcessor, 
 
         String id = notification.getId();
         long ts = notification.getTimestamp().getTime();
-        long start = notification.getStartTime();
         long period = notification.getPeriod();
-        long bin = getBinFromTimestamp(ts, start, period);
+        long bin = getBinFromTimestamp(ts, period);
         NodeBin nodeBin = new NodeBin(id, bin);
 
         try (Snapshot sx = client.newSnapshot()) {
@@ -116,10 +115,9 @@ public class TimestampedNotificationProcessor implements NotificationProcessor, 
      *            - length of period
      * @return left bin end point containing event time ts
      */
-    private long getBinFromTimestamp(long ts, long start, long period) {
-        Preconditions.checkArgument(start < ts);
+    private long getBinFromTimestamp(long ts, long period) {
         Preconditions.checkArgument(period > 0);
-        return ((ts - start) / period) * period + start;
+        return (ts / period) * period;
     }
 
     @Override

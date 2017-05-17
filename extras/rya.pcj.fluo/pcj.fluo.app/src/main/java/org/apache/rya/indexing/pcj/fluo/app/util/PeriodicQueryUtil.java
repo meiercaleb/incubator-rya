@@ -19,7 +19,6 @@ import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.ValueFactoryImpl;
 import org.openrdf.model.vocabulary.XMLSchema;
-import org.openrdf.query.algebra.Extension;
 import org.openrdf.query.algebra.Filter;
 import org.openrdf.query.algebra.FunctionCall;
 import org.openrdf.query.algebra.Group;
@@ -115,7 +114,7 @@ public class PeriodicQueryUtil {
             relocationParent = node;
             super.meet(node);
         }
-        
+
         public void meet(Filter node) {
             super.meet(node);
         }
@@ -147,18 +146,19 @@ public class PeriodicQueryUtil {
         switch (type) {
         case AGGREGATION:
             AggregationMetadata.Builder aggBuilder = builder.getAggregateBuilder(nodeId).orNull();
-            if(aggBuilder != null) {
+            if (aggBuilder != null) {
                 VariableOrder varOrder = aggBuilder.getVariableOrder();
                 VariableOrder groupOrder = aggBuilder.getGroupByVariableOrder();
-                //update varOrder with BIN_ID
+                // update varOrder with BIN_ID
                 List<String> orderList = new ArrayList<>(varOrder.getVariableOrders());
                 orderList.add(0, PeriodicQueryUpdater.BIN_ID);
                 aggBuilder.setVariableOrder(new VariableOrder(orderList));
-                //update groupVarOrder with BIN_ID
+                // update groupVarOrder with BIN_ID
                 List<String> groupOrderList = new ArrayList<>(groupOrder.getVariableOrders());
                 groupOrderList.add(0, PeriodicQueryUpdater.BIN_ID);
                 aggBuilder.setGroupByVariableOrder(new VariableOrder(groupOrderList));
-                //recursive call to update the VariableOrders of all ancestors of this node
+                // recursive call to update the VariableOrders of all ancestors
+                // of this node
                 updateVarOrdersToIncludeBin(builder, aggBuilder.getParentNodeId());
             } else {
                 throw new IllegalArgumentException("There is no AggregationMetadata.Builder for the indicated Id.");
@@ -166,26 +166,29 @@ public class PeriodicQueryUtil {
             break;
         case PERIODIC_QUERY:
             PeriodicQueryMetadata.Builder periodicBuilder = builder.getPeriodicQueryBuilder().orNull();
-            if(periodicBuilder != null && periodicBuilder.getNodeId().equals(nodeId)) {
+            if (periodicBuilder != null && periodicBuilder.getNodeId().equals(nodeId)) {
                 VariableOrder varOrder = periodicBuilder.getVarOrder();
                 List<String> orderList = new ArrayList<>(varOrder.getVariableOrders());
                 orderList.add(0, PeriodicQueryUpdater.BIN_ID);
                 periodicBuilder.setVarOrder(new VariableOrder(orderList));
-                //recursive call to update the VariableOrders of all ancestors of this node
+                // recursive call to update the VariableOrders of all ancestors
+                // of this node
                 updateVarOrdersToIncludeBin(builder, periodicBuilder.getParentNodeId());
             } else {
-                throw new IllegalArgumentException("PeriodicQueryMetadata.Builder id does not match the indicated id.  A query cannot have more than one PeriodicQueryMetadata Node.");
+                throw new IllegalArgumentException(
+                        "PeriodicQueryMetadata.Builder id does not match the indicated id.  A query cannot have more than one PeriodicQueryMetadata Node.");
             }
             break;
         case QUERY:
             QueryMetadata.Builder queryBuilder = builder.getQueryBuilder().orNull();
-            if(queryBuilder != null && queryBuilder.getNodeId().equals(nodeId)) {
+            if (queryBuilder != null && queryBuilder.getNodeId().equals(nodeId)) {
                 VariableOrder varOrder = queryBuilder.getVariableOrder();
                 List<String> orderList = new ArrayList<>(varOrder.getVariableOrders());
                 orderList.add(0, PeriodicQueryUpdater.BIN_ID);
                 queryBuilder.setVariableOrder(new VariableOrder(orderList));
             } else {
-                throw new IllegalArgumentException("QueryMetadata.Builder id does not match the indicated id.  A query cannot have more than one QueryMetadata Node.");
+                throw new IllegalArgumentException(
+                        "QueryMetadata.Builder id does not match the indicated id.  A query cannot have more than one QueryMetadata Node.");
             }
             break;
         default:
@@ -215,6 +218,9 @@ public class PeriodicQueryUtil {
         double periodDuration = parseTemporalDuration((ValueConstant) values.get(2));
         long windowMillis = convertToMillis(windowDuration, unit);
         long periodMillis = convertToMillis(periodDuration, unit);
+        // period must evenly divide window at least once
+        Preconditions.checkArgument(windowMillis > periodMillis);
+        Preconditions.checkArgument(windowMillis % periodMillis == 0, "Period duration does not evenly divide window duration.");
 
         // create PeriodicMetadata.Builder
         return new PeriodicQueryNode(windowMillis, periodMillis, unit, tempVar, arg);
@@ -243,7 +249,8 @@ public class PeriodicQueryUtil {
         Literal literal = (Literal) val;
         String stringVal = literal.getLabel();
         URI dataType = literal.getDatatype();
-        Preconditions.checkArgument(dataType.equals(XMLSchema.DECIMAL));
+        Preconditions.checkArgument(dataType.equals(XMLSchema.DECIMAL) || dataType.equals(XMLSchema.DOUBLE)
+                || dataType.equals(XMLSchema.FLOAT) || dataType.equals(XMLSchema.INTEGER) || dataType.equals(XMLSchema.INT));
         return Double.parseDouble(stringVal);
     }
 

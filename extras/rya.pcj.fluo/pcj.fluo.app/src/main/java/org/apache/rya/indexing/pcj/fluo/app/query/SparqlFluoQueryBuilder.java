@@ -22,9 +22,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.AGGREGATION_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.FILTER_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.JOIN_PREFIX;
+import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.PERIODIC_QUERY_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.QUERY_PREFIX;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.SP_PREFIX;
-import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.PERIODIC_QUERY_PREFIX;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,7 +47,6 @@ import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
 import org.openrdf.query.algebra.AggregateOperator;
 import org.openrdf.query.algebra.Extension;
 import org.openrdf.query.algebra.Filter;
-import org.openrdf.query.algebra.FunctionCall;
 import org.openrdf.query.algebra.Group;
 import org.openrdf.query.algebra.GroupElem;
 import org.openrdf.query.algebra.Join;
@@ -91,7 +90,9 @@ public class SparqlFluoQueryBuilder {
         final FluoQuery.Builder fluoQueryBuilder = FluoQuery.builder();
 
         final NewQueryVisitor visitor = new NewQueryVisitor(sparql, fluoQueryBuilder, nodeIds);
-        parsedQuery.getTupleExpr().visit( visitor );
+        TupleExpr te = parsedQuery.getTupleExpr();
+        PeriodicQueryUtil.placePeriodicQueryNode(te);
+        te.visit( visitor );
 
         final FluoQuery fluoQuery = fluoQueryBuilder.build();
         return fluoQuery;
@@ -406,10 +407,14 @@ public class SparqlFluoQueryBuilder {
                     periodicBuilder.setNodeId(periodicId);
                     fluoQueryBuilder.addPeriodicQueryMetadata(periodicBuilder);
                 }
+                periodicBuilder.setWindowSize(node.getWindowSize());
+                periodicBuilder.setPeriod(node.getPeriod());
+                periodicBuilder.setTemporalVariable(node.getTemporalVariable());
+                periodicBuilder.setUnit(node.getUnit());
 
                 final QueryModelNode child = node.getArg();
                 if (child == null) {
-                    throw new IllegalArgumentException("Filter arg connot be null.");
+                    throw new IllegalArgumentException("PeriodicQueryNode child arg connot be null.");
                 }
 
                 final String childNodeId = nodeIds.getOrMakeId(child);

@@ -17,8 +17,6 @@ import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.ValueFactoryImpl;
 import org.openrdf.query.algebra.evaluation.QueryBindingSet;
 
-import com.google.common.base.Preconditions;
-
 /**
  * This class adds the appropriate BinId Binding to each BindingSet that it processes.  The BinIds
  * are used to determine which period a BindingSet (with a temporal Binding) falls into so that
@@ -28,7 +26,7 @@ import com.google.common.base.Preconditions;
 public class PeriodicQueryUpdater {
 
     private static final Logger log = Logger.getLogger(PeriodicQueryUpdater.class);
-    public static final String BIN_ID = "PeriodEndTime";
+    public static final String BIN_ID = "internalNotificationID";
     private static final ValueFactory vf = new ValueFactoryImpl();
     private static final VisibilityBindingSetSerDe BS_SERDE = new VisibilityBindingSetSerDe();
 
@@ -63,25 +61,19 @@ public class PeriodicQueryUpdater {
             Value value = bs.getBinding(timeVar).getValue();
             Literal temporalLiteral = (Literal) value;
             long eventDateTime = temporalLiteral.calendarValue().toGregorianCalendar().getTimeInMillis();
-            return getEndTimes(eventDateTime, metadata.getStartTime(), metadata.getWindowSize(), metadata.getPeriod());
+            return getEndTimes(eventDateTime, metadata.getWindowSize(), metadata.getPeriod());
         } catch (Exception e) {
             log.trace("Unable to extract the entity time from BindingSet: " + bs);
         }
         return binIds;
     }
 
-    /**
-     * This method returns the smallest period end time that is greater than the
-     * eventDateTime.
-     * 
-     * @param eventDateTime
-     * @param startTime - when the periodic notification was first registered
-     * @param periodTime 
-     * @return - smallest period end time greater than the eventDateTime
-     */
-    private long getFirstBinEndTime(long eventDateTime, long startTime, long periodTime) {
-        Preconditions.checkArgument(startTime < eventDateTime);
-        return ((eventDateTime - startTime) / periodTime + 1) * periodTime + startTime;
+    private long getRightBinEndPoint(long eventDateTime, long periodDuration) {
+        return (eventDateTime / periodDuration + 1) * periodDuration;
+    }
+    
+    private long getLeftBinEndPoint(long eventTime, long periodDuration) {
+        return (eventTime / periodDuration) * periodDuration;
     }
 
     /**
@@ -89,23 +81,29 @@ public class PeriodicQueryUpdater {
      * that occur within one windowSize of the eventDateTime.
      * @param eventDateTime
      * @param startTime
-     * @param windowSize
-     * @param periodTime
+     * @param windowDuration
+     * @param periodDuration
      * @return Set of period bin end times
      */
-    private Set<Long> getEndTimes(long eventDateTime, long startTime, long windowSize, long periodTime) {
+    private Set<Long> getEndTimes(long eventDateTime, long windowDuration, long periodDuration) {
         Set<Long> binIds = new HashSet<>();
-        long firstBinEndTime = getFirstBinEndTime(eventDateTime, startTime, periodTime);
-        long numBins = 0;
-        if (windowSize % periodTime == 0) {
-            numBins = windowSize / periodTime - 1;
+        long rightEventBin = getRightBinEndPoint(eventDateTime, periodDuration);
+        //get the bin left of the current moment for comparison
+        long currentBin = getLeftBinEndPoint(System.currentTimeMillis(), periodDuration);
+        
+        if(currentBin >= rightEventBin) {
+            long numBins = (windowDuration -(currentBin - rightEventBin))/periodDuration;
+            for(int i = 1; i <= numBins; i++) {
+                binIds.add(currentBin + (i-1)*periodDuration);
+            }
         } else {
-            numBins = windowSize / periodTime;
+            //this corresponds to a future event that is inserted into the system
+            long numBins = windowDuration/periodDuration;
+            for(int i = 0; i < numBins; i++) {
+                binIds.add(rightEventBin + i*periodDuration);
+            }
         }
 
-        for (int i = 0; i <= numBins; i++) {
-            binIds.add(firstBinEndTime + i * periodTime);
-        }
         return binIds;
     }
     

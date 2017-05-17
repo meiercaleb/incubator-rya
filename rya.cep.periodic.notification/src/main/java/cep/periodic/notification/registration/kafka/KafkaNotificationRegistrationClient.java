@@ -48,9 +48,9 @@ public class KafkaNotificationRegistrationClient implements PeriodicNotification
     }
 
     @Override
-    public void addNotification(String id, long startTime, long period, long delay, TimeUnit unit) {
+    public void addNotification(String id, long period, long delay, TimeUnit unit) {
         validateState();
-        Notification notification = PeriodicNotification.builder().id(id).period(period).initialDelay(delay).startTime(startTime).timeUnit(unit).build();
+        Notification notification = PeriodicNotification.builder().id(id).period(period).initialDelay(delay).timeUnit(unit).build();
         processNotification(new CommandNotification(Command.ADD, notification));
     }
     

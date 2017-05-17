@@ -7,8 +7,8 @@ public class TimestampedNotification extends PeriodicNotification {
 
     private Date date;
 
-    public TimestampedNotification(String id, long startTime, long period, TimeUnit periodTimeUnit, long initialDelay) {
-        super(id, startTime, period, periodTimeUnit, initialDelay);
+    public TimestampedNotification(String id, long period, TimeUnit periodTimeUnit, long initialDelay) {
+        super(id, period, periodTimeUnit, initialDelay);
         date = new Date();
     }
     

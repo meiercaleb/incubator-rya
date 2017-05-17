@@ -66,7 +66,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
  *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:variableOrder</td> <td>The Variable Order binding sets are emitted with.</td> </tr>
  *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:period</td> <td>The period size used to form BindingSet bins.</td> </tr>
  *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:windowSize</td> <td>The window size used to form BindingSet bins.</td> </tr>
- *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:startTime</td> <td>The time at which periodic query was registered.</td> </tr>
  *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:timeUnit</td> <td>The unit of time corresponding to period and window size.</td> </tr>
  *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:temporalVariable</td> <td>The BindingSet variable corresponding to event time.</td> </tr>
  *     <tr> <td>Node ID</td> <td>periodicQueryMetadata:parentNodeId</td> <td>The parent node for this node.</td> </tr>
@@ -185,7 +184,6 @@ public class FluoQueryColumns {
     public static final Column PERIODIC_QUERY_BINDING_SET = new Column(PERIODIC_QUERY_METADATA_CF, "bindingSet");
     public static final Column PERIODIC_QUERY_PERIOD = new Column(PERIODIC_QUERY_METADATA_CF, "period");
     public static final Column PERIODIC_QUERY_WINDOWSIZE = new Column(PERIODIC_QUERY_METADATA_CF, "windowSize");
-    public static final Column PERIODIC_QUERY_STARTTIME = new Column(PERIODIC_QUERY_METADATA_CF, "startTime");
     public static final Column PERIODIC_QUERY_TIMEUNIT = new Column(PERIODIC_QUERY_METADATA_CF, "timeUnit");
     public static final Column PERIODIC_QUERY_TEMPORAL_VARIABLE = new Column(PERIODIC_QUERY_METADATA_CF, "temporalVariable");
     
@@ -252,7 +250,6 @@ public class FluoQueryColumns {
                         PERIODIC_QUERY_WINDOWSIZE,
                         PERIODIC_QUERY_TIMEUNIT,
                         PERIODIC_QUERY_TEMPORAL_VARIABLE,
-                        PERIODIC_QUERY_STARTTIME,
                         PERIODIC_QUERY_PARENT_NODE_ID,
                         PERIODIC_QUERY_CHILD_NODE_ID)),
 

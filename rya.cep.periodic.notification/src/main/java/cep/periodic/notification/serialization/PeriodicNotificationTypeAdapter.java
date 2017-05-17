@@ -24,11 +24,10 @@ public class PeriodicNotificationTypeAdapter
 
         JsonObject json = arg0.getAsJsonObject();
         String id = json.get("id").getAsString();
-        long start = json.get("startTime").getAsLong();
         long period = json.get("period").getAsLong();
         TimeUnit periodTimeUnit = TimeUnit.valueOf(json.get("timeUnit").getAsString());
         long initialDelay = json.get("initialDelay").getAsLong();
-        Builder builder = PeriodicNotification.builder().id(id).period(period).startTime(start)
+        Builder builder = PeriodicNotification.builder().id(id).period(period)
                 .initialDelay(initialDelay).timeUnit(periodTimeUnit);
 
         return builder.build();
@@ -39,7 +38,6 @@ public class PeriodicNotificationTypeAdapter
 
         JsonObject result = new JsonObject();
         result.add("id", new JsonPrimitive(arg0.getId()));
-        result.add("startTime", new JsonPrimitive(arg0.getStartTime()));
         result.add("period", new JsonPrimitive(arg0.getPeriod()));
         result.add("initialDelay", new JsonPrimitive(arg0.getInitialDelay()));
         result.add("timeUnit", new JsonPrimitive(arg0.getTimeUnit().name()));

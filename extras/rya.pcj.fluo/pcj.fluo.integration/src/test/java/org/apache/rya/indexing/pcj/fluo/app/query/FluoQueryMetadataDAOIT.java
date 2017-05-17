@@ -20,6 +20,8 @@ package org.apache.rya.indexing.pcj.fluo.app.query;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.fluo.api.client.FluoClient;
 import org.apache.fluo.api.client.FluoFactory;
 import org.apache.fluo.api.client.Snapshot;
@@ -217,6 +219,41 @@ public class FluoQueryMetadataDAOIT extends RyaExportITBase {
             AggregationMetadata storedMetadata = null;
             try(Snapshot sx = fluoClient.newSnapshot()) {
                 storedMetadata = dao.readAggregationMetadata(sx, "nodeId");
+            }
+
+            // Ensure the deserialized object is the same as the serialized one.
+            assertEquals(originalMetadata, storedMetadata);
+        }
+    }
+    
+    @Test
+    public void periodicQueryMetadataTest() {
+        final FluoQueryMetadataDAO dao = new FluoQueryMetadataDAO();
+
+        // Create the object that will be serialized.
+        PeriodicQueryMetadata originalMetadata =  PeriodicQueryMetadata.builder()
+            .setNodeId("nodeId")
+            .setParentNodeId("parentNodeId")
+            .setVarOrder(new VariableOrder("a","b","c"))
+            .setChildNodeId("childNodeId")
+            .setPeriod(10)
+            .setWindowSize(20)
+            .setUnit(TimeUnit.DAYS)
+            .setTemporalVariable("a")
+            .build();
+            
+
+        try(FluoClient fluoClient = FluoFactory.newClient(super.getFluoConfiguration())) {
+            // Write it to the Fluo table.
+            try(Transaction tx = fluoClient.newTransaction()) {
+                dao.write(tx, originalMetadata);
+                tx.commit();
+            }
+
+            // Read it from the Fluo table.
+            PeriodicQueryMetadata storedMetadata = null;
+            try(Snapshot sx = fluoClient.newSnapshot()) {
+                storedMetadata = dao.readPeriodicQueryMetadata(sx, "nodeId");
             }
 
             // Ensure the deserialized object is the same as the serialized one.

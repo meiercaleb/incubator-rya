@@ -11,6 +11,7 @@ import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicQueryMetadata;
 import org.apache.rya.indexing.pcj.fluo.app.util.RowKeyUtil;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
+import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSetSerDe;
 import org.openrdf.model.Literal;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
@@ -26,7 +27,6 @@ import org.openrdf.query.algebra.evaluation.QueryBindingSet;
 public class PeriodicQueryUpdater {
 
     private static final Logger log = Logger.getLogger(PeriodicQueryUpdater.class);
-    public static final String BIN_ID = "internalNotificationID";
     private static final ValueFactory vf = new ValueFactoryImpl();
     private static final VisibilityBindingSetSerDe BS_SERDE = new VisibilityBindingSetSerDe();
 
@@ -36,7 +36,7 @@ public class PeriodicQueryUpdater {
         for(Long id: binIds) {
             //create binding set value bytes
             QueryBindingSet binnedBs = new QueryBindingSet(bs);
-            binnedBs.addBinding(BIN_ID, vf.createLiteral(id));
+            binnedBs.addBinding(IncrementalUpdateConstants.PERIODIC_BIN_ID, vf.createLiteral(id));
             VisibilityBindingSet visibilityBindingSet = new VisibilityBindingSet(binnedBs, bs.getVisibility());
             Bytes periodicBsBytes = BS_SERDE.serialize(visibilityBindingSet);
             

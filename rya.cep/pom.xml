@@ -11,8 +11,8 @@
   <packaging>pom</packaging>
 
     <modules>
-        <module>rya.cep.periodic.notification</module>
-        <module>rya.cep.integration.tests</module>
+        <module>cep.periodic.notification</module>
+        <module>cep.integration.tests</module>
     </modules>
   
 </project>

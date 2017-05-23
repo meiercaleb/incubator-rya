@@ -28,8 +28,10 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalResultExporter;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalResultExporterFactory;
+import org.apache.rya.indexing.pcj.storage.PeriodicQueryResultStorage;
 import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage;
 import org.apache.rya.indexing.pcj.storage.accumulo.AccumuloPcjStorage;
+import org.apache.rya.indexing.pcj.storage.accumulo.AccumuloPeriodicQueryResultStorage;
 
 import com.google.common.base.Optional;
 
@@ -62,9 +64,10 @@ public class RyaResultExporterFactory implements IncrementalResultExporterFactor
                 // Setup Rya PCJ Storage.
                 final String ryaInstanceName = params.getRyaInstanceName().get();
                 final PrecomputedJoinStorage pcjStorage = new AccumuloPcjStorage(accumuloConn, ryaInstanceName);
-
+                final PeriodicQueryResultStorage periodicStorage = new AccumuloPeriodicQueryResultStorage(accumuloConn, ryaInstanceName);
+                
                 // Make the exporter.
-                final IncrementalResultExporter exporter = new RyaResultExporter(pcjStorage);
+                final IncrementalResultExporter exporter = new RyaResultExporter(pcjStorage, periodicStorage);
                 return Optional.of(exporter);
 
             } catch (final AccumuloException | AccumuloSecurityException e) {

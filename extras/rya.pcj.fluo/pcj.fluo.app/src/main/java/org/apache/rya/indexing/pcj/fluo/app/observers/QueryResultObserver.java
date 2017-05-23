@@ -29,7 +29,6 @@ import org.apache.fluo.api.data.Column;
 import org.apache.fluo.api.observer.AbstractObserver;
 import org.apache.log4j.Logger;
 import org.apache.rya.accumulo.utils.VisibilitySimplifier;
-import org.apache.rya.indexing.pcj.fluo.app.VisibilityBindingSetSerDe;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalResultExporter;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalResultExporter.ResultExportException;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalResultExporterFactory;
@@ -38,6 +37,7 @@ import org.apache.rya.indexing.pcj.fluo.app.export.kafka.KafkaResultExporterFact
 import org.apache.rya.indexing.pcj.fluo.app.export.rya.RyaResultExporterFactory;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
+import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSetSerDe;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;

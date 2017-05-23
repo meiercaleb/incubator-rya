@@ -132,7 +132,7 @@ public class SparqlFluoQueryBuilder {
          */
         public Optional<String> getId(final QueryModelNode node) {
             checkNotNull(node);
-            return Optional.ofNullable( nodeIds.get(node) );
+            return Optional.ofNullable( nodeIds.get(node));
         }
 
         /**

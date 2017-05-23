@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.rya.indexing.pcj.fluo.app.PeriodicQueryUpdater;
+import org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants;
 import org.apache.rya.indexing.pcj.fluo.app.query.SparqlFluoQueryBuilder.NodeIds;
 import org.apache.rya.indexing.pcj.fluo.app.util.PeriodicQueryUtil;
 import org.apache.rya.indexing.pcj.fluo.app.util.PeriodicQueryUtil.PeriodicQueryNodeRelocator;
@@ -152,17 +152,17 @@ public class PeriodicQueryUtilTest {
          PeriodicQueryMetadata periodicMeta = fluoQuery.getPeriodicQueryMetadata().orNull();
          Assert.assertEquals(true, periodicMeta != null);
          VariableOrder periodicVars = periodicMeta.getVariableOrder();
-         Assert.assertEquals(PeriodicQueryUpdater.BIN_ID, periodicVars.getVariableOrders().get(0));
+         Assert.assertEquals(IncrementalUpdateConstants.PERIODIC_BIN_ID, periodicVars.getVariableOrders().get(0));
          
          QueryMetadata queryMeta = fluoQuery.getQueryMetadata();
          VariableOrder queryVars = queryMeta.getVariableOrder();
-         Assert.assertEquals(PeriodicQueryUpdater.BIN_ID, queryVars.getVariableOrders().get(0));
+         Assert.assertEquals(IncrementalUpdateConstants.PERIODIC_BIN_ID, queryVars.getVariableOrders().get(0));
          
          Collection<AggregationMetadata> aggMetaCollection = fluoQuery.getAggregationMetadata();
          Assert.assertEquals(1, aggMetaCollection.size());
          AggregationMetadata aggMeta = aggMetaCollection.iterator().next();
          VariableOrder aggVars = aggMeta.getVariableOrder();
-         Assert.assertEquals(PeriodicQueryUpdater.BIN_ID, aggVars.getVariableOrders().get(0));
+         Assert.assertEquals(IncrementalUpdateConstants.PERIODIC_BIN_ID, aggVars.getVariableOrders().get(0));
          
          System.out.println(fluoQuery);
     }

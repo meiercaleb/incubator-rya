@@ -17,7 +17,6 @@ import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.IterativeJoin;
 import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.LeftOuterJoin;
 import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.NaturalJoin;
 import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.Side;
-import org.apache.rya.indexing.pcj.fluo.app.VisibilityBindingSetSerDe;
 import org.apache.rya.indexing.pcj.fluo.app.batch.BatchInformation.Task;
 import org.apache.rya.indexing.pcj.fluo.app.batch.serializer.BatchInformationSerializer;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
@@ -26,6 +25,7 @@ import org.apache.rya.indexing.pcj.fluo.app.query.JoinMetadata;
 import org.apache.rya.indexing.pcj.fluo.app.util.RowKeyUtil;
 import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
+import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSetSerDe;
 
 import com.google.common.base.Preconditions;
 

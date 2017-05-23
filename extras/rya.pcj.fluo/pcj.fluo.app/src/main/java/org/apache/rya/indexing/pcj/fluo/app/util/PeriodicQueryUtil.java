@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants;
 import org.apache.rya.indexing.pcj.fluo.app.NodeType;
-import org.apache.rya.indexing.pcj.fluo.app.PeriodicQueryUpdater;
 import org.apache.rya.indexing.pcj.fluo.app.query.AggregationMetadata;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQuery;
 import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicQueryMetadata;
@@ -151,11 +151,11 @@ public class PeriodicQueryUtil {
                 VariableOrder groupOrder = aggBuilder.getGroupByVariableOrder();
                 // update varOrder with BIN_ID
                 List<String> orderList = new ArrayList<>(varOrder.getVariableOrders());
-                orderList.add(0, PeriodicQueryUpdater.BIN_ID);
+                orderList.add(0, IncrementalUpdateConstants.PERIODIC_BIN_ID);
                 aggBuilder.setVariableOrder(new VariableOrder(orderList));
                 // update groupVarOrder with BIN_ID
                 List<String> groupOrderList = new ArrayList<>(groupOrder.getVariableOrders());
-                groupOrderList.add(0, PeriodicQueryUpdater.BIN_ID);
+                groupOrderList.add(0, IncrementalUpdateConstants.PERIODIC_BIN_ID);
                 aggBuilder.setGroupByVariableOrder(new VariableOrder(groupOrderList));
                 // recursive call to update the VariableOrders of all ancestors
                 // of this node
@@ -169,7 +169,7 @@ public class PeriodicQueryUtil {
             if (periodicBuilder != null && periodicBuilder.getNodeId().equals(nodeId)) {
                 VariableOrder varOrder = periodicBuilder.getVarOrder();
                 List<String> orderList = new ArrayList<>(varOrder.getVariableOrders());
-                orderList.add(0, PeriodicQueryUpdater.BIN_ID);
+                orderList.add(0, IncrementalUpdateConstants.PERIODIC_BIN_ID);
                 periodicBuilder.setVarOrder(new VariableOrder(orderList));
                 // recursive call to update the VariableOrders of all ancestors
                 // of this node
@@ -184,7 +184,7 @@ public class PeriodicQueryUtil {
             if (queryBuilder != null && queryBuilder.getNodeId().equals(nodeId)) {
                 VariableOrder varOrder = queryBuilder.getVariableOrder();
                 List<String> orderList = new ArrayList<>(varOrder.getVariableOrders());
-                orderList.add(0, PeriodicQueryUpdater.BIN_ID);
+                orderList.add(0, IncrementalUpdateConstants.PERIODIC_BIN_ID);
                 queryBuilder.setVariableOrder(new VariableOrder(orderList));
             } else {
                 throw new IllegalArgumentException(

@@ -8,13 +8,13 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.fluo.api.client.FluoClient;
 import org.apache.log4j.Logger;
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
 import org.apache.rya.cep.periodic.api.LifeCycle;
 import org.apache.rya.cep.periodic.api.NodeBin;
 import org.apache.rya.indexing.accumulo.ConfigUtils;
+import org.apache.rya.indexing.pcj.storage.accumulo.AccumuloPeriodicQueryResultStorage;
 
 import com.google.common.base.Preconditions;
 
@@ -71,10 +71,10 @@ public class PeriodicQueryPrunerExecutor implements LifeCycle {
 
     private AccumuloBinPruner getAccumuloPrunerFromConfig(AccumuloRdfConfiguration conf)
             throws AccumuloException, AccumuloSecurityException {
-        Authorizations auths = ConfigUtils.getAuthorizations(conf);
         Connector connector = ConfigUtils.getConnector(conf);
         String ryaInstanceName = conf.getTablePrefix();
-        return new AccumuloBinPruner(connector, auths, ryaInstanceName);
+        
+        return new AccumuloBinPruner(new AccumuloPeriodicQueryResultStorage(connector, ryaInstanceName));
     }
 
 

@@ -3,24 +3,23 @@ package org.apache.rya.periodic.notification.registration.kafka;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.rya.cep.periodic.api.Notification;
 import org.apache.rya.cep.periodic.api.PeriodicNotificationClient;
 import org.apache.rya.periodic.notification.notification.BasicNotification;
 import org.apache.rya.periodic.notification.notification.CommandNotification;
-import org.apache.rya.periodic.notification.notification.PeriodicNotification;
 import org.apache.rya.periodic.notification.notification.CommandNotification.Command;
+import org.apache.rya.periodic.notification.notification.PeriodicNotification;
 import org.apache.rya.periodic.notification.serialization.CommandNotificationSerializer;
-
-import kafka.javaapi.producer.Producer;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
-import kafka.serializer.StringEncoder;
 
 public class KafkaNotificationRegistrationClient implements PeriodicNotificationClient {
 
     private Properties props;
     private boolean init = false;
-    private Producer<String, CommandNotification> producer;
+    private KafkaProducer<String, CommandNotification> producer;
     private String topic;
     
     public KafkaNotificationRegistrationClient(String topic, Properties props) {
@@ -57,7 +56,7 @@ public class KafkaNotificationRegistrationClient implements PeriodicNotification
     
    
     private void processNotification(CommandNotification notification) {
-        producer.send(new KeyedMessage<String, CommandNotification>(topic, notification.getId(), notification));
+        producer.send(new ProducerRecord<String, CommandNotification>(topic, notification.getId(), notification));
     }
     
     private void validateState() {
@@ -67,10 +66,9 @@ public class KafkaNotificationRegistrationClient implements PeriodicNotification
     }
     
     private void init(Properties props) {
-        props.setProperty("key.serializer.class", StringEncoder.class.getName());
-        props.setProperty("serializer.class", CommandNotificationSerializer.class.getName());
-        ProducerConfig producerConfig = new ProducerConfig(props);
-        producer = new Producer<String, CommandNotification>(producerConfig);
+        props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, CommandNotificationSerializer.class.getName());
+        producer = new KafkaProducer<String, CommandNotification>(props);
         init = true;
     }
 
@@ -79,7 +77,6 @@ public class KafkaNotificationRegistrationClient implements PeriodicNotification
     public void close() {
         producer.close();
     }
-    
     
 
 }

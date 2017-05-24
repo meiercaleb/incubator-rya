@@ -41,6 +41,7 @@ import org.apache.rya.api.client.accumulo.AccumuloRyaClientFactory;
 import org.apache.rya.indexing.pcj.fluo.api.CreatePcj;
 import org.apache.rya.indexing.pcj.storage.PeriodicQueryResultStorage;
 import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage;
+import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage.CloseableIterator;
 import org.apache.rya.indexing.pcj.storage.accumulo.AccumuloPcjStorage;
 import org.apache.rya.indexing.pcj.storage.accumulo.AccumuloPeriodicQueryResultStorage;
 import org.apache.rya.pcj.fluo.test.base.RyaExportITBase;
@@ -765,10 +766,11 @@ public class QueryIT extends RyaExportITBase {
                 new CreatePcj().createPcj(periodicId, sparql, fluo);
             }
             addStatementsAndWait(statements);
-            CloseableIteration<BindingSet, Exception> resultIter = periodicStorage.listResults(periodicId, Optional.empty());
             final Set<BindingSet> results = Sets.newHashSet();
-            while(resultIter.hasNext()) {
-                results.add(resultIter.next());
+            try (CloseableIterator<BindingSet> resultIter = periodicStorage.listResults(periodicId, Optional.empty())) {
+                while (resultIter.hasNext()) {
+                    results.add(resultIter.next());
+                }
             }
             assertEquals(expectedResults, results);
             break;

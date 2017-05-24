@@ -17,7 +17,7 @@ public class PeriodicNotification implements Notification {
     public PeriodicNotification(String id, long period, TimeUnit periodTimeUnit, long initialDelay) {
         Preconditions.checkNotNull(id);
         Preconditions.checkNotNull(periodTimeUnit);
-        Preconditions.checkArgument(period > 0 && initialDelay > 0);
+        Preconditions.checkArgument(period > 0 && initialDelay >= 0);
         this.id = id;
         this.period = period;
         this.periodTimeUnit = periodTimeUnit;
@@ -51,8 +51,8 @@ public class PeriodicNotification implements Notification {
         String delim = "=";
         String delim2 = ";";
         return builder.append("id").append(delim).append(id).append(delim2).append("period").append(delim).append(period).append(delim2)
-                .append("startTime").append(delim).append(delim2).append("periodTimeUnit").append(delim)
-                .append(periodTimeUnit).append(delim2).append("initialDelay").append(delim).append(initialDelay).toString();
+                .append("periodTimeUnit").append(delim).append(periodTimeUnit).append(delim2).append("initialDelay").append(delim)
+                .append(initialDelay).toString();
     }
 
     @Override

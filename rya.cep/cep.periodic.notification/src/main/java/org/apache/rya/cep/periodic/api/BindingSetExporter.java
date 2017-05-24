@@ -1,9 +1,10 @@
 package org.apache.rya.cep.periodic.api;
 
-import org.openrdf.query.BindingSet;
+import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalResultExporter.ResultExportException;
+import org.apache.rya.periodic.notification.exporter.BindingSetRecord;
 
 public interface BindingSetExporter {
 
-    public void exportNotification(BindingSet bindingSet);
+    public void exportNotification(BindingSetRecord bindingSet) throws ResultExportException;
 
 }

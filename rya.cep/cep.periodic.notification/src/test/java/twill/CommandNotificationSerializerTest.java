@@ -7,13 +7,13 @@ import org.apache.rya.periodic.notification.notification.BasicNotification;
 import org.apache.rya.periodic.notification.notification.CommandNotification;
 import org.apache.rya.periodic.notification.notification.PeriodicNotification;
 import org.apache.rya.periodic.notification.notification.CommandNotification.Command;
-import org.apache.rya.periodic.notification.serialization.CommandNotificationSerializer;
+import org.apache.rya.periodic.notification.serialization.CommandNotificationEncoder;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class CommandNotificationSerializerTest {
 
-    private CommandNotificationSerializer serializer = new CommandNotificationSerializer();
+    private CommandNotificationEncoder serializer = new CommandNotificationEncoder();
 
     @Test
     public void basicSerializationTest() {

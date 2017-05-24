@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage.CloseableIterator;
 import org.apache.rya.indexing.pcj.storage.accumulo.VariableOrder;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
 import org.openrdf.query.BindingSet;
@@ -26,7 +27,7 @@ public interface PeriodicQueryResultStorage {
     
     public void deletePeriodicQuery(String queryID) throws PeriodicQueryStorageException;;
     
-    public CloseableIteration<BindingSet, Exception> listResults(String queryId, Optional<Long> binID) throws PeriodicQueryStorageException;;
+    public CloseableIterator<BindingSet> listResults(String queryId, Optional<Long> binID) throws PeriodicQueryStorageException;;
     
     public List<String> listPeriodicTables();
     

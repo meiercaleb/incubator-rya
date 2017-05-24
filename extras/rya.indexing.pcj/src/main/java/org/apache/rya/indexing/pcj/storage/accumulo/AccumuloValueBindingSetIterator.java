@@ -7,12 +7,10 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.fluo.api.data.Bytes;
-import org.apache.rya.indexing.pcj.storage.PeriodicQueryStorageException;
+import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage.CloseableIterator;
 import org.openrdf.query.BindingSet;
 
-import info.aduna.iteration.CloseableIteration;
-
-public class AccumuloValueBindingSetIterator implements CloseableIteration<BindingSet,Exception>{
+public class AccumuloValueBindingSetIterator implements CloseableIterator<BindingSet>{
     
     private final Scanner scanner;
     private final Iterator<Entry<Key, Value>> iter;
@@ -29,7 +27,7 @@ public class AccumuloValueBindingSetIterator implements CloseableIteration<Bindi
     }
     
     @Override 
-    public BindingSet next() throws PeriodicQueryStorageException {
+    public BindingSet next() {
         try {
             return bsSerDe.deserialize(Bytes.of(iter.next().getValue().get())).set;
         } catch (Exception e) {
@@ -43,7 +41,7 @@ public class AccumuloValueBindingSetIterator implements CloseableIteration<Bindi
     }
 
     @Override
-    public void remove() throws Exception {
+    public void remove() {
         throw new UnsupportedOperationException();
     }
     

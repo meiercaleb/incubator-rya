@@ -21,11 +21,16 @@ import org.apache.rya.indexing.pcj.storage.PCJIdFactory;
 import org.apache.rya.indexing.pcj.storage.PeriodicQueryResultStorage;
 import org.apache.rya.indexing.pcj.storage.PeriodicQueryStorageException;
 import org.apache.rya.indexing.pcj.storage.PeriodicQueryStorageMetadata;
+import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage.CloseableIterator;
+import org.apache.rya.indexing.pcj.storage.accumulo.BindingSetConverter.BindingSetConversionException;
+import org.openrdf.model.impl.LiteralImpl;
+import org.openrdf.model.vocabulary.XMLSchema;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.algebra.AggregateOperatorBase;
 import org.openrdf.query.algebra.ExtensionElem;
 import org.openrdf.query.algebra.TupleExpr;
+import org.openrdf.query.algebra.evaluation.QueryBindingSet;
 import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
 import org.openrdf.query.parser.sparql.SPARQLParser;
 
@@ -37,13 +42,21 @@ public class AccumuloPeriodicQueryResultStorage implements PeriodicQueryResultSt
 
     private String ryaInstance;
     private Connector accumuloConn;
+    private Authorizations auths;
     private final PCJIdFactory pcjIdFactory = new PCJIdFactory();
+    private final AccumuloPcjSerializer converter = new AccumuloPcjSerializer();
     private static final PcjTables pcjTables = new PcjTables();
     private static final PeriodicQueryTableNameFactory tableNameFactory = new PeriodicQueryTableNameFactory();
 
     public AccumuloPeriodicQueryResultStorage(Connector accumuloConn, String ryaInstance) {
         this.accumuloConn = accumuloConn;
         this.ryaInstance = ryaInstance;
+        String user = accumuloConn.whoami();
+        try {
+            this.auths = accumuloConn.securityOperations().getUserAuthorizations(user);
+        } catch (AccumuloException | AccumuloSecurityException e) {
+            throw new RuntimeException("Unable access user: " + user + "authorizations.");
+        }
     }
 
     @Override
@@ -102,9 +115,9 @@ public class AccumuloPeriodicQueryResultStorage implements PeriodicQueryResultSt
     public void deletePeriodicQueryResults(String queryId, long binId) throws PeriodicQueryStorageException {
         String tableName = tableNameFactory.makeTableName(ryaInstance, queryId);
         try {
-            Text prefix = new Text(Long.toString(binId));
+            Text prefix = getRowPrefix(binId);
             accumuloConn.tableOperations().deleteRows(tableName, prefix, Range.followingPrefix(prefix));
-        } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+        } catch (Exception e) {
             throw new PeriodicQueryStorageException(e.getMessage());
         }
     }
@@ -127,18 +140,9 @@ public class AccumuloPeriodicQueryResultStorage implements PeriodicQueryResultSt
     }
 
     @Override
-    public CloseableIteration<BindingSet, Exception> listResults(String queryId, Optional<Long> binId)
+    public CloseableIterator<BindingSet> listResults(String queryId, Optional<Long> binId)
             throws PeriodicQueryStorageException {
         requireNonNull(queryId);
-
-        // extract user auths from accumulo Connector
-        final String myUsername = accumuloConn.whoami();
-        Authorizations auths;
-        try {
-            auths = accumuloConn.securityOperations().getUserAuthorizations(myUsername);
-        } catch (AccumuloException | AccumuloSecurityException e) {
-            throw new PeriodicQueryStorageException(e.getMessage());
-        }
 
         String tableName = tableNameFactory.makeTableName(ryaInstance, queryId);
         // Fetch the Variable Orders for the binding sets and choose one of
@@ -154,13 +158,20 @@ public class AccumuloPeriodicQueryResultStorage implements PeriodicQueryResultSt
             final Scanner scanner = accumuloConn.createScanner(tableName, auths);
             scanner.fetchColumnFamily(new Text(varOrder.toString()));
             if (binId.isPresent()) {
-                scanner.setRange(Range.prefix(new Text(Long.toString(binId.get()))));
+                scanner.setRange(Range.prefix(getRowPrefix(binId.get())));
             }
             return new AccumuloValueBindingSetIterator(scanner);
 
-        } catch (final TableNotFoundException e) {
+        } catch (Exception e) {
             throw new PeriodicQueryStorageException(String.format("PCJ Table does not exist for name '%s'.", tableName), e);
         }
+    }
+    
+    private Text getRowPrefix(long binId) throws BindingSetConversionException {
+        QueryBindingSet bs = new QueryBindingSet();
+        bs.addBinding(PeriodicQueryResultStorage.PeriodicBinId, new LiteralImpl(Long.toString(binId), XMLSchema.LONG));
+        
+        return new Text(converter.convert(bs, new VariableOrder(PeriodicQueryResultStorage.PeriodicBinId)));
     }
 
     @Override

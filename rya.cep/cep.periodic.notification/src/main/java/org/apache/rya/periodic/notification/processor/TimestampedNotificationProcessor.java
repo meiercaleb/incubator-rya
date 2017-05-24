@@ -2,24 +2,18 @@ package org.apache.rya.periodic.notification.processor;
 
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.fluo.api.client.FluoClient;
 import org.apache.log4j.Logger;
-import org.apache.rya.accumulo.AccumuloRdfConfiguration;
 import org.apache.rya.cep.periodic.api.NodeBin;
 import org.apache.rya.cep.periodic.api.NotificationProcessor;
-import org.apache.rya.indexing.accumulo.ConfigUtils;
 import org.apache.rya.indexing.pcj.storage.PeriodicQueryResultStorage;
-import org.apache.rya.indexing.pcj.storage.accumulo.AccumuloPeriodicQueryResultStorage;
+import org.apache.rya.indexing.pcj.storage.PrecomputedJoinStorage.CloseableIterator;
+import org.apache.rya.periodic.notification.exporter.BindingSetRecord;
 import org.apache.rya.periodic.notification.notification.TimestampedNotification;
 import org.openrdf.query.BindingSet;
 
 import com.google.common.base.Preconditions;
-
-import info.aduna.iteration.CloseableIteration;
 
 public class TimestampedNotificationProcessor implements NotificationProcessor, Runnable {
 
@@ -28,11 +22,12 @@ public class TimestampedNotificationProcessor implements NotificationProcessor, 
     private BlockingQueue<TimestampedNotification> notifications; // notifications
                                                                   // to process
     private BlockingQueue<NodeBin> bins; // entries to delete from Fluo
-    private BlockingQueue<BindingSet> bindingSets; // query results to export
+    private BlockingQueue<BindingSetRecord> bindingSets; // query results to export
+    private AtomicBoolean closed = new AtomicBoolean(false);
     private int threadNumber;
 
     public TimestampedNotificationProcessor(PeriodicQueryResultStorage periodicStorage,
-            BlockingQueue<TimestampedNotification> notifications, BlockingQueue<NodeBin> bins, BlockingQueue<BindingSet> bindingSets,
+            BlockingQueue<TimestampedNotification> notifications, BlockingQueue<NodeBin> bins, BlockingQueue<BindingSetRecord> bindingSets,
             int threadNumber) {
         Preconditions.checkNotNull(notifications);
         Preconditions.checkNotNull(bins);
@@ -61,11 +56,10 @@ public class TimestampedNotificationProcessor implements NotificationProcessor, 
         long bin = getBinFromTimestamp(ts, period);
         NodeBin nodeBin = new NodeBin(id, bin);
 
-        CloseableIteration<BindingSet, Exception> iter;
-        try {
-            iter = periodicStorage.listResults(id, Optional.of(bin));
-            while (iter.hasNext()) {
-                bindingSets.put(iter.next());
+        try (CloseableIterator<BindingSet> iter = periodicStorage.listResults(id, Optional.of(bin));) {
+
+            while(iter.hasNext()) {
+                bindingSets.add(new BindingSetRecord(iter.next(), id));
             }
             // add NodeBin to BinPruner queue so that bin can be deleted from
             // Fluo and Accumulo
@@ -94,12 +88,18 @@ public class TimestampedNotificationProcessor implements NotificationProcessor, 
     @Override
     public void run() {
         try {
-            processNotification(notifications.take());
+            while(!closed.get()) {
+                processNotification(notifications.take());
+            }
         } catch (Exception e) {
             log.trace("Thread_" + threadNumber + " is unable to process next notification.");
             throw new RuntimeException(e);
         }
 
+    }
+    
+    public void shutdown() {
+        closed.set(true);
     }
 
     public static Builder builder() {
@@ -113,7 +113,7 @@ public class TimestampedNotificationProcessor implements NotificationProcessor, 
         private PeriodicQueryResultStorage periodicStorage;
         private BlockingQueue<TimestampedNotification> notifications; // notifications to process
         private BlockingQueue<NodeBin> bins; // entries to delete from Fluo
-        private BlockingQueue<BindingSet> bindingSets; // query results to export
+        private BlockingQueue<BindingSetRecord> bindingSets; // query results to export
                                                        
         private int threadNumber;
 
@@ -127,7 +127,7 @@ public class TimestampedNotificationProcessor implements NotificationProcessor, 
             return this;
         }
 
-        public Builder setBindingSets(BlockingQueue<BindingSet> bindingSets) {
+        public Builder setBindingSets(BlockingQueue<BindingSetRecord> bindingSets) {
             this.bindingSets = bindingSets;
             return this;
         }

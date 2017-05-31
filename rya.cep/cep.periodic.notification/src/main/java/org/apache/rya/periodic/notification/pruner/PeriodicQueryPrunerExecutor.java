@@ -1,61 +1,59 @@
 package org.apache.rya.periodic.notification.pruner;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.fluo.api.client.FluoClient;
 import org.apache.log4j.Logger;
-import org.apache.rya.accumulo.AccumuloRdfConfiguration;
 import org.apache.rya.cep.periodic.api.LifeCycle;
 import org.apache.rya.cep.periodic.api.NodeBin;
-import org.apache.rya.indexing.accumulo.ConfigUtils;
-import org.apache.rya.indexing.pcj.storage.accumulo.AccumuloPeriodicQueryResultStorage;
+import org.apache.rya.indexing.pcj.storage.PeriodicQueryResultStorage;
 
 import com.google.common.base.Preconditions;
 
 public class PeriodicQueryPrunerExecutor implements LifeCycle {
 
     private static final Logger log = Logger.getLogger(PeriodicQueryPrunerExecutor.class);
-    private AccumuloRdfConfiguration conf;
     private FluoClient client;
     private int numThreads;
     private ExecutorService executor;
     private BlockingQueue<NodeBin> bins;
+    private PeriodicQueryResultStorage periodicStorage;
+    private List<PeriodicQueryPruner> pruners;
     private boolean running = false;
 
-    public PeriodicQueryPrunerExecutor(AccumuloRdfConfiguration conf, FluoClient client, int numThreads, BlockingQueue<NodeBin> bins) {
-        Preconditions.checkNotNull(conf);
+    public PeriodicQueryPrunerExecutor(PeriodicQueryResultStorage periodicStorage, FluoClient client, int numThreads, BlockingQueue<NodeBin> bins) {
         Preconditions.checkArgument(numThreads > 0);
-        this.conf = conf;
+        this.periodicStorage = periodicStorage;
         this.numThreads = numThreads;
         executor = Executors.newFixedThreadPool(numThreads);
         this.bins = bins;
         this.client = client;
+        this.pruners = new ArrayList<>();
     }
 
     @Override
     public void start() {
-        try {
-            AccumuloBinPruner accPruner = this.getAccumuloPrunerFromConfig(conf);
-            FluoBinPruner fluoPruner = new FluoBinPruner(client);
-            for (int threadNumber = 0; threadNumber < numThreads; threadNumber++) {
-                executor.submit(new PeriodicQueryPruner(fluoPruner, accPruner, client, bins, threadNumber));
-            }
-            running = true;
-        } catch (AccumuloException | AccumuloSecurityException e) {
-            log.info("Unable to cleanly initialize the Executor.  Could not connect to the Accumulo table.");
-            throw new RuntimeException(e);
+        AccumuloBinPruner accPruner = new AccumuloBinPruner(periodicStorage);
+        FluoBinPruner fluoPruner = new FluoBinPruner(client);
+        
+        for (int threadNumber = 0; threadNumber < numThreads; threadNumber++) {
+            PeriodicQueryPruner pruner = new PeriodicQueryPruner(fluoPruner, accPruner, client, bins, threadNumber);
+            pruners.add(pruner);
+            executor.submit(pruner);
         }
-
+        running = true;
     }
 
     @Override
     public void stop() {
+        if(pruners != null && pruners.size() > 0) {
+            pruners.forEach(x -> x.shutdown());
+        }
         if (executor != null) {
             executor.shutdown();
             running = false;
@@ -67,14 +65,6 @@ public class PeriodicQueryPrunerExecutor implements LifeCycle {
         } catch (InterruptedException e) {
             log.info("Interrupted during shutdown, exiting uncleanly");
         }
-    }
-
-    private AccumuloBinPruner getAccumuloPrunerFromConfig(AccumuloRdfConfiguration conf)
-            throws AccumuloException, AccumuloSecurityException {
-        Connector connector = ConfigUtils.getConnector(conf);
-        String ryaInstanceName = conf.getTablePrefix();
-        
-        return new AccumuloBinPruner(new AccumuloPeriodicQueryResultStorage(connector, ryaInstanceName));
     }
 
 

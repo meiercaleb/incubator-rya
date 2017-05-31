@@ -62,6 +62,8 @@ import org.openrdf.query.algebra.StatementPattern;
 import org.openrdf.query.parser.ParsedQuery;
 import org.openrdf.query.parser.sparql.SPARQLParser;
 
+import com.google.common.base.Preconditions;
+
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
@@ -116,10 +118,38 @@ public class CreatePcj {
 
     
     /**
+     * Tells the Fluo PCJ Updater application to maintain a new PCJ. This method
+     * creates the FluoQuery (metadata) inside of Fluo so that results can be incrementally generated
+     * inside of Fluo.  This method assumes that the user will export the results to Kafka or
+     * some other external resource.  The export id is equivalent to the queryId that is returned,
+     * which is in contrast to the other createPcj methods in this class which accept an external pcjId
+     * that is used to identify the Accumulo table or Kafka topic for exporting results.
+     *
+     * @param sparql - sparql query String to be registered with Fluo
+     * @param fluo - A connection to the Fluo application that updates the PCJ index. (not null)
+     * @return queryId - The id of the root of the query metadata tree in Fluo
+     * @throws MalformedQueryException The SPARQL query stored for the {@code pcjId} is malformed.
+     * @throws PcjException The PCJ Metadata for {@code pcjId} could not be read from {@code pcjStorage}.
+     */
+    public String createPcj(String sparql, FluoClient fluo) throws MalformedQueryException {
+        Preconditions.checkNotNull(sparql);
+        Preconditions.checkNotNull(fluo);
+        
+        FluoQuery fluoQuery = makeFluoQuery(sparql);
+        String queryId = fluoQuery.getQueryMetadata().getNodeId();
+        String[] idArray = queryId.split("_");
+        String id = idArray[idArray.length - 1];
+        
+        writeFluoQuery(fluo, fluoQuery, id);
+        return id;
+    }
+    
+    
+    /**
      * Tells the Fluo PCJ Updater application to maintain a new PCJ.  This method provides
      * no guarantees that a PCJ with the given pcjId exists outside of Fluo. This method merely
      * creates the FluoQuery (metadata) inside of Fluo so that results and be incrementally generated
-     * inside of Fluo.  This method assumes tjat the user will export the results to Kafka or
+     * inside of Fluo.  This method assumes that the user will export the results to Kafka or
      * some other external resource.
      *
      * @param pcjId - Identifies the PCJ that will be updated by the Fluo app. (not null)
@@ -137,6 +167,14 @@ public class CreatePcj {
         requireNonNull(sparql);
         requireNonNull(fluo);
 
+        FluoQuery fluoQuery = makeFluoQuery(sparql);
+        writeFluoQuery(fluo, fluoQuery, pcjId);
+
+        return fluoQuery;
+    }
+    
+    private FluoQuery makeFluoQuery(String sparql) throws MalformedQueryException {
+        
         // Keeps track of the IDs that are assigned to each of the query's nodes in Fluo.
         // We use these IDs later when scanning Rya for historic Statement Pattern matches
         // as well as setting up automatic exports.
@@ -144,8 +182,10 @@ public class CreatePcj {
 
         // Parse the query's structure for the metadata that will be written to fluo.
         final ParsedQuery parsedQuery = new SPARQLParser().parseQuery(sparql, null);
-        final FluoQuery fluoQuery = new SparqlFluoQueryBuilder().make(parsedQuery, nodeIds);
-
+        return new SparqlFluoQueryBuilder().make(parsedQuery, nodeIds);
+    }
+    
+    private void writeFluoQuery(FluoClient fluo, FluoQuery fluoQuery, String pcjId) {
         try (Transaction tx = fluo.newTransaction()) {
             // Write the query's structure to Fluo.
             new FluoQueryMetadataDAO().write(tx, fluoQuery);
@@ -158,8 +198,6 @@ public class CreatePcj {
             // Flush the changes to Fluo.
             tx.commit();
         }
-
-        return fluoQuery;
     }
 
     

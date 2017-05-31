@@ -35,6 +35,7 @@ import org.apache.rya.api.client.accumulo.AccumuloConnectionDetails;
 import org.apache.rya.api.client.accumulo.AccumuloRyaClientFactory;
 import org.apache.rya.indexing.accumulo.ConfigUtils;
 import org.apache.rya.indexing.external.PrecomputedJoinIndexerConfig;
+import org.apache.rya.indexing.pcj.fluo.app.batch.BatchObserver;
 import org.apache.rya.indexing.pcj.fluo.app.export.rya.RyaExportParameters;
 import org.apache.rya.indexing.pcj.fluo.app.observers.AggregationObserver;
 import org.apache.rya.indexing.pcj.fluo.app.observers.FilterObserver;
@@ -74,6 +75,7 @@ public class RyaExportITBase extends AccumuloExportITBase {
     protected void preFluoInitHook() throws Exception {
         // Setup the observers that will be used by the Fluo PCJ Application.
         final List<ObserverSpecification> observers = new ArrayList<>();
+        observers.add(new ObserverSpecification(BatchObserver.class.getName()));
         observers.add(new ObserverSpecification(TripleObserver.class.getName()));
         observers.add(new ObserverSpecification(StatementPatternObserver.class.getName()));
         observers.add(new ObserverSpecification(JoinObserver.class.getName()));

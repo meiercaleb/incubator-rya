@@ -20,7 +20,6 @@ import org.apache.fluo.api.data.Column;
 import org.apache.fluo.api.data.ColumnValue;
 import org.apache.fluo.api.data.Span;
 import org.apache.fluo.core.client.FluoClientImpl;
-import org.apache.fluo.recipes.test.AccumuloExportITBase;
 import org.apache.log4j.Logger;
 import org.apache.rya.api.domain.RyaStatement;
 import org.apache.rya.api.domain.RyaURI;
@@ -96,7 +95,7 @@ public class BatchDeleteIT extends RyaExportITBase {
         verifyCounts(fluoClient, ids, Arrays.asList(0, 0, 0, 0));
     }
 
-    @Test
+//    @Test
     public void simpleJoinDelete() throws Exception {
         final String sparql = "SELECT ?subject ?object1 ?object2 WHERE { ?subject <urn:predicate_1> ?object1; "
                 + " <urn:predicate_2> ?object2 } ";
@@ -144,7 +143,7 @@ public class BatchDeleteIT extends RyaExportITBase {
     }
 
     
-    @Test
+//    @Test
     public void simpleJoinAdd() throws Exception {
         final String sparql = "SELECT ?subject ?object1 ?object2 WHERE { ?subject <urn:predicate_1> ?object1; "
                 + " <urn:predicate_2> ?object2 } ";

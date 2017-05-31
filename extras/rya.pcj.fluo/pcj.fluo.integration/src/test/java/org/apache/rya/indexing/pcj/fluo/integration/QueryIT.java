@@ -65,8 +65,6 @@ import org.openrdf.repository.sail.SailRepositoryConnection;
 
 import com.google.common.collect.Sets;
 
-import info.aduna.iteration.CloseableIteration;
-
 /**
  * Performs integration tests over the Fluo application geared towards various query structures.
  */
@@ -463,16 +461,16 @@ public class QueryIT extends RyaExportITBase {
         ZonedDateTime time = ZonedDateTime.now();
         long currentTime = time.toInstant().toEpochMilli();
         
-        ZonedDateTime zTime1 = time.minusMinutes(29);
+        ZonedDateTime zTime1 = time.minusMinutes(30);
         String time1 = zTime1.format(DateTimeFormatter.ISO_INSTANT);
         
-        ZonedDateTime zTime2 = zTime1.minusMinutes(28);
+        ZonedDateTime zTime2 = zTime1.minusMinutes(30);
         String time2 = zTime2.format(DateTimeFormatter.ISO_INSTANT);
         
-        ZonedDateTime zTime3 = zTime2.minusMinutes(27);
+        ZonedDateTime zTime3 = zTime2.minusMinutes(30);
         String time3 = zTime3.format(DateTimeFormatter.ISO_INSTANT);
         
-        ZonedDateTime zTime4 = zTime3.minusMinutes(26);
+        ZonedDateTime zTime4 = zTime3.minusMinutes(30);
         String time4 = zTime4.format(DateTimeFormatter.ISO_INSTANT);
         
         final Collection<Statement> statements = Sets.newHashSet(
@@ -562,16 +560,16 @@ public class QueryIT extends RyaExportITBase {
         ZonedDateTime time = ZonedDateTime.now();
         long currentTime = time.toInstant().toEpochMilli();
         
-        ZonedDateTime zTime1 = time.minusMinutes(29);
+        ZonedDateTime zTime1 = time.minusMinutes(30);
         String time1 = zTime1.format(DateTimeFormatter.ISO_INSTANT);
         
-        ZonedDateTime zTime2 = zTime1.minusMinutes(28);
+        ZonedDateTime zTime2 = zTime1.minusMinutes(30);
         String time2 = zTime2.format(DateTimeFormatter.ISO_INSTANT);
         
-        ZonedDateTime zTime3 = zTime2.minusMinutes(27);
+        ZonedDateTime zTime3 = zTime2.minusMinutes(30);
         String time3 = zTime3.format(DateTimeFormatter.ISO_INSTANT);
         
-        ZonedDateTime zTime4 = zTime3.minusMinutes(26);
+        ZonedDateTime zTime4 = zTime3.minusMinutes(30);
         String time4 = zTime4.format(DateTimeFormatter.ISO_INSTANT);
         
         final Collection<Statement> statements = Sets.newHashSet(
@@ -631,16 +629,16 @@ public class QueryIT extends RyaExportITBase {
         ZonedDateTime time = ZonedDateTime.now();
         long currentTime = time.toInstant().toEpochMilli();
         
-        ZonedDateTime zTime1 = time.minusMinutes(29);
+        ZonedDateTime zTime1 = time.minusMinutes(30);
         String time1 = zTime1.format(DateTimeFormatter.ISO_INSTANT);
         
-        ZonedDateTime zTime2 = zTime1.minusMinutes(28);
+        ZonedDateTime zTime2 = zTime1.minusMinutes(30);
         String time2 = zTime2.format(DateTimeFormatter.ISO_INSTANT);
         
-        ZonedDateTime zTime3 = zTime2.minusMinutes(27);
+        ZonedDateTime zTime3 = zTime2.minusMinutes(30);
         String time3 = zTime3.format(DateTimeFormatter.ISO_INSTANT);
         
-        ZonedDateTime zTime4 = zTime3.minusMinutes(26);
+        ZonedDateTime zTime4 = zTime3.minusMinutes(30);
         String time4 = zTime4.format(DateTimeFormatter.ISO_INSTANT);
         
         final Collection<Statement> statements = Sets.newHashSet(

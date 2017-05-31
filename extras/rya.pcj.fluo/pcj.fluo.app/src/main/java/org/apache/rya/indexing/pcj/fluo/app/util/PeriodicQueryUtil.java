@@ -1,14 +1,20 @@
 package org.apache.rya.indexing.pcj.fluo.app.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.fluo.api.client.SnapshotBase;
+import org.apache.fluo.api.data.Bytes;
 import org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants;
 import org.apache.rya.indexing.pcj.fluo.app.NodeType;
 import org.apache.rya.indexing.pcj.fluo.app.query.AggregationMetadata;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQuery;
+import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicQueryMetadata;
 import org.apache.rya.indexing.pcj.fluo.app.query.PeriodicQueryNode;
 import org.apache.rya.indexing.pcj.fluo.app.query.QueryMetadata;
@@ -19,6 +25,7 @@ import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.ValueFactoryImpl;
 import org.openrdf.model.vocabulary.XMLSchema;
+import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.algebra.Filter;
 import org.openrdf.query.algebra.FunctionCall;
 import org.openrdf.query.algebra.Group;
@@ -31,6 +38,7 @@ import org.openrdf.query.algebra.ValueConstant;
 import org.openrdf.query.algebra.ValueExpr;
 import org.openrdf.query.algebra.Var;
 import org.openrdf.query.algebra.helpers.QueryModelVisitorBase;
+import org.openrdf.query.parser.sparql.SPARQLParser;
 
 import com.google.common.base.Preconditions;
 
@@ -43,6 +51,14 @@ public class PeriodicQueryUtil {
     public static final URI HOURS = vf.createURI("http://www.w3.org/2006/time#hours");
     public static final URI MINUTES = vf.createURI("http://www.w3.org/2006/time#minutes");
 
+    /**
+     * Returns a PeriodicQueryNode for all {@link FunctionCall}s that represent PeriodicQueryNodes, otherwise
+     * an empty Optional is returned.
+     * @param functionCall - FunctionCall taken from a {@lin TupleExpr}
+     * @param arg - TupleExpr that will be the argument of the PeriodicQueryNode if it is created
+     * @return - Optional containing a PeriodicQueryNode if FunctionCall represents PeriodicQueryNode and empty Optional otherwise
+     * @throws Exception
+     */
     public static Optional<PeriodicQueryNode> getPeriodicQueryNode(FunctionCall functionCall, TupleExpr arg) throws Exception {
 
         if (functionCall.getURI().equals(PeriodicQueryURI)) {
@@ -52,9 +68,21 @@ public class PeriodicQueryUtil {
         return Optional.empty();
     }
 
+    /**
+     * Finds and places a PeriodicQueryNode if the TupleExpr contains a FunctionCall
+     * that represents a PeriodicQueryNode.
+     * @param query - TupleExpr with PeriodicQueryNode placed and positioned at the top of the query
+     */
     public static void placePeriodicQueryNode(TupleExpr query) {
         query.visit(new PeriodicQueryNodeVisitor());
         query.visit(new PeriodicQueryNodeRelocator());
+    }
+    
+    public static Optional<PeriodicQueryNode> getPeriodicNode(String sparql) throws MalformedQueryException {
+        TupleExpr te = new SPARQLParser().parseQuery(sparql, null).getTupleExpr();
+        PeriodicQueryNodeVisitor periodicVisitor = new PeriodicQueryNodeVisitor();
+        te.visit(periodicVisitor);
+        return periodicVisitor.getPeriodicNode();
     }
 
     /**
@@ -64,6 +92,11 @@ public class PeriodicQueryUtil {
     public static class PeriodicQueryNodeVisitor extends QueryModelVisitorBase<RuntimeException> {
 
         private int count = 0;
+        private PeriodicQueryNode periodicNode;
+        
+        public Optional<PeriodicQueryNode> getPeriodicNode() {
+            return Optional.ofNullable(periodicNode);
+        }
 
         public void meet(Filter node) {
             if (node.getCondition() instanceof FunctionCall) {
@@ -73,7 +106,7 @@ public class PeriodicQueryUtil {
                         if (count > 0) {
                             throw new IllegalArgumentException("Query cannot contain more than one PeriodicQueryNode");
                         }
-                        PeriodicQueryNode periodicNode = optNode.get();
+                        periodicNode = optNode.get();
                         node.replaceWith(periodicNode);
                         count++;
                         periodicNode.visit(this);
@@ -138,6 +171,13 @@ public class PeriodicQueryUtil {
         }
     }
 
+    /**
+     * Adds the variable "periodicBinId" to the beginning of all {@link VariableOrder}s for the 
+     * Metadata nodes that appear above the PeriodicQueryNode.  This ensures that the binId is
+     * written first in the Row so that bins can be easily scanned and deleted.
+     * @param builder
+     * @param nodeId
+     */
     public static void updateVarOrdersToIncludeBin(FluoQuery.Builder builder, String nodeId) {
         NodeType type = NodeType.fromNodeId(nodeId).orNull();
         if (type == null) {
@@ -197,6 +237,46 @@ public class PeriodicQueryUtil {
         }
     }
 
+    /**
+     * Collects all Metadata node Ids that are ancestors of the PeriodicQueryNode and contain the variable 
+     * {@link IncrementalUpdateConstants#PERIODIC_BIN_ID}.
+     * @param sx - Fluo Snapshot for scanning Fluo
+     * @param nodeId - root node of the PeriodicQuery
+     * @param ids - query ids of all metadata nodes appearing between root and PeriodicQueryMetadata node
+     */
+    public static void getPeriodicQueryNodeAncestorIds(SnapshotBase sx, String nodeId, Set<String> ids) {
+        NodeType nodeType = NodeType.fromNodeId(nodeId).orNull();
+        checkArgument(nodeType != null, "Invalid nodeId: " + nodeId + ". NodeId does not correspond to a valid NodeType.");
+        switch (nodeType) {
+        case FILTER:
+            ids.add(nodeId);
+            getPeriodicQueryNodeAncestorIds(sx, sx.get(Bytes.of(nodeId), FluoQueryColumns.FILTER_CHILD_NODE_ID).toString(), ids);
+            break;
+        case PERIODIC_QUERY:
+            ids.add(nodeId);
+            break;
+        case QUERY:
+            ids.add(nodeId);
+            getPeriodicQueryNodeAncestorIds(sx, sx.get(Bytes.of(nodeId), FluoQueryColumns.QUERY_CHILD_NODE_ID).toString(), ids);
+            break;
+        case AGGREGATION: 
+            ids.add(nodeId);
+            getPeriodicQueryNodeAncestorIds(sx, sx.get(Bytes.of(nodeId), FluoQueryColumns.AGGREGATION_CHILD_NODE_ID).toString(), ids);
+            break;
+        default:
+            throw new RuntimeException("Invalid NodeType.");
+        }
+    }
+
+    
+    
+    /**
+     * 
+     * @param values - Values extracted from FunctionCall representing the PeriodicQuery Filter
+     * @param arg - Argument of the PeriodicQueryNode that will be created (PeriodicQueryNode is a UnaryTupleOperator)
+     * @return - PeriodicQueryNode to be inserted in place of the original FunctionCall
+     * @throws Exception
+     */
     private static PeriodicQueryNode parseAndSetValues(List<ValueExpr> values, TupleExpr arg) throws Exception {
         // general validation of input
         Preconditions.checkArgument(values.size() == 4);

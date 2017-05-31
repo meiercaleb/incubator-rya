@@ -63,6 +63,11 @@ public class AccumuloPeriodicQueryResultStorage implements PeriodicQueryResultSt
     public String createPeriodicQuery(String sparql) throws PeriodicQueryStorageException {
         Preconditions.checkNotNull(sparql);
         String queryId = pcjIdFactory.nextId();
+        return createPeriodicQuery(queryId, sparql);
+    }
+    
+    @Override
+    public String createPeriodicQuery(String queryId, String sparql) throws PeriodicQueryStorageException {
         Set<String> bindingNames;
         try {
             bindingNames = new AggregateVariableRemover().getNonAggregationVariables(sparql);
@@ -78,6 +83,9 @@ public class AccumuloPeriodicQueryResultStorage implements PeriodicQueryResultSt
 
     @Override
     public void createPeriodicQuery(String queryId, String sparql, VariableOrder order) throws PeriodicQueryStorageException {
+        Preconditions.checkNotNull(sparql);
+        Preconditions.checkNotNull(queryId);
+        Preconditions.checkNotNull(order);
         Preconditions.checkArgument(PeriodicQueryResultStorage.PeriodicBinId.equals(order.getVariableOrders().get(0)),
                 "periodicBinId binding name must occur first in VariableOrder.");
         String tableName = tableNameFactory.makeTableName(ryaInstance, queryId);

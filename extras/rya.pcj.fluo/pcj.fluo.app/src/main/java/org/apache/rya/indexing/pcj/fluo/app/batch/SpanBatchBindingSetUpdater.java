@@ -79,29 +79,33 @@ public class SpanBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
 
         log.trace("Deleting batch of size: " + batchSize + " using Span: " + span + " and Column: " + column);
         RowScanner rs = tx.scanner().over(span).fetch(column).byRow().build();
-        Iterator<ColumnScanner> colScannerIter = rs.iterator();
+        try {
+            Iterator<ColumnScanner> colScannerIter = rs.iterator();
 
-        int count = 0;
-        boolean batchLimitMet = false;
-        Bytes row = span.getStart().getRow();
-        while (colScannerIter.hasNext() && !batchLimitMet) {
-            ColumnScanner colScanner = colScannerIter.next();
-            row = colScanner.getRow();
-            Iterator<ColumnValue> iter = colScanner.iterator();
-            while (iter.hasNext()) {
-                if (count >= batchSize) {
-                    batchLimitMet = true;
-                    break;
+            int count = 0;
+            boolean batchLimitMet = false;
+            Bytes row = span.getStart().getRow();
+            while (colScannerIter.hasNext() && !batchLimitMet) {
+                ColumnScanner colScanner = colScannerIter.next();
+                row = colScanner.getRow();
+                Iterator<ColumnValue> iter = colScanner.iterator();
+                while (iter.hasNext()) {
+                    if (count >= batchSize) {
+                        batchLimitMet = true;
+                        break;
+                    }
+                    ColumnValue colVal = iter.next();
+                    tx.delete(row, colVal.getColumn());
+                    count++;
                 }
-                ColumnValue colVal = iter.next();
-                tx.delete(row, colVal.getColumn());
-                count++;
             }
-        }
 
-        if (batchLimitMet) {
-            return Optional.of(new RowColumn(row));
-        } else {
+            if (batchLimitMet) {
+                return Optional.of(new RowColumn(row));
+            } else {
+                return Optional.empty();
+            }
+        } catch (Exception e) {
             return Optional.empty();
         }
     }

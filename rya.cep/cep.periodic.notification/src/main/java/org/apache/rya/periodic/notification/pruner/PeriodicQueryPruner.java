@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.fluo.api.client.FluoClient;
 import org.apache.fluo.api.client.Snapshot;
@@ -15,6 +16,7 @@ import org.apache.rya.cep.periodic.api.BinPruner;
 import org.apache.rya.cep.periodic.api.NodeBin;
 import org.apache.rya.indexing.pcj.fluo.app.NodeType;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
+import org.apache.rya.indexing.pcj.fluo.app.util.PeriodicQueryUtil;
 
 import com.google.common.base.Optional;
 
@@ -27,6 +29,7 @@ public class PeriodicQueryPruner implements BinPruner, Runnable {
     private AccumuloBinPruner accPruner;
     private FluoBinPruner fluoPruner;
     private BlockingQueue<NodeBin> bins;
+    private AtomicBoolean closed = new AtomicBoolean(false);
     private int threadNumber;
 
     public PeriodicQueryPruner(FluoBinPruner fluoPruner, AccumuloBinPruner accPruner, FluoClient client, BlockingQueue<NodeBin> bins, int threadNumber) {
@@ -43,7 +46,9 @@ public class PeriodicQueryPruner implements BinPruner, Runnable {
     @Override
     public void run() {
         try {
-            pruneBindingSetBin(bins.take());
+            while (!closed.get()) {
+                pruneBindingSetBin(bins.take());
+            }
         } catch (InterruptedException e) {
             log.trace("Thread " + threadNumber + " is unable to prune the next message.");
             throw new RuntimeException(e);
@@ -61,9 +66,9 @@ public class PeriodicQueryPruner implements BinPruner, Runnable {
         String id = nodeBin.getNodeId();
         long bin = nodeBin.getBin();
         try(Snapshot sx = client.newSnapshot()) {
-            String pcjId = sx.get(Bytes.of(id), FluoQueryColumns.RYA_PCJ_ID).toString();
-            Set<String> fluoIds = getNodeIdsFromResultId(sx, id);
-            accPruner.pruneBindingSetBin(new NodeBin(pcjId, bin));
+            String queryId = sx.get(Bytes.of(id), FluoQueryColumns.PCJ_ID_QUERY_ID).toString();
+            Set<String> fluoIds = getNodeIdsFromResultId(sx, queryId);
+            accPruner.pruneBindingSetBin(new NodeBin(id, bin));
             for(String fluoId: fluoIds) {
                 fluoPruner.pruneBindingSetBin(new NodeBin(fluoId, bin));
             }
@@ -71,34 +76,17 @@ public class PeriodicQueryPruner implements BinPruner, Runnable {
             log.trace("Could not successfully initialize PeriodicQueryBinPruner.");
         }
     }
+    
+    
+    public void shutdown() {
+        closed.set(true);
+    }
 
     private Set<String> getNodeIdsFromResultId(SnapshotBase sx, String id) {
         Set<String> ids = new HashSet<>();
-        getIds(sx, id, ids);
+        PeriodicQueryUtil.getPeriodicQueryNodeAncestorIds(sx, id, ids);
         return ids;
     }
 
-    private void getIds(SnapshotBase sx, String nodeId, Set<String> ids) {
-        Optional<NodeType> nodeType = NodeType.fromNodeId(nodeId);
-        checkArgument(nodeType.isPresent(), "Invalid nodeId: " + nodeId + ". NodeId does not correspond to a valid NodeType.");
-        NodeType type = nodeType.get();
-        switch (type) {
-        case FILTER:
-            ids.add(nodeId);
-            getIds(sx, sx.get(Bytes.of(nodeId), FluoQueryColumns.FILTER_CHILD_NODE_ID).toString(), ids);
-            break;
-        case PERIODIC_QUERY:
-            ids.add(nodeId);
-            break;
-        case QUERY:
-            ids.add(nodeId);
-            getIds(sx, sx.get(Bytes.of(nodeId), FluoQueryColumns.QUERY_CHILD_NODE_ID).toString(), ids);
-            break;
-        default:
-            log.trace("Invalid query structure.  PerioidicBinNode is only allowed to have Filters and QueryNodes as ancestors.");
-            throw new RuntimeException();
-        }
-
-    }
 
 }

@@ -17,6 +17,8 @@ public interface PeriodicQueryResultStorage {
 
     public String createPeriodicQuery(String sparql) throws PeriodicQueryStorageException;
     
+    public String createPeriodicQuery(String queryId, String sparql) throws PeriodicQueryStorageException;
+    
     public void createPeriodicQuery(String queryId, String sparql, VariableOrder varOrder) throws PeriodicQueryStorageException;
     
     public PeriodicQueryStorageMetadata getPeriodicQueryMetadata(String queryID) throws PeriodicQueryStorageException;;

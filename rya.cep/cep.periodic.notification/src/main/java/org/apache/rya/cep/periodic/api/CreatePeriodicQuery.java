@@ -1,6 +1,7 @@
 package org.apache.rya.cep.periodic.api;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.fluo.api.client.FluoClient;
 import org.apache.rya.indexing.pcj.fluo.api.CreatePcj;
@@ -10,6 +11,8 @@ import org.apache.rya.indexing.pcj.storage.PeriodicQueryResultStorage;
 import org.apache.rya.indexing.pcj.storage.PeriodicQueryStorageException;
 import org.apache.rya.periodic.notification.notification.PeriodicNotification;
 import org.openrdf.query.MalformedQueryException;
+
+import com.google.common.base.Preconditions;
 
 public class CreatePeriodicQuery {
 
@@ -57,10 +60,30 @@ public class CreatePeriodicQuery {
      * @param PeriodicNotificationClient - registers the PeriodicQuery with the {@link PeriodicNotificationApplication}
      * @return id of the PeriodicQuery and PeriodicQueryResultStorage table (these are the same)
      */
-    public String createPeriodicQueryAndRegisterWithNotificationApp(String sparql, PeriodicNotificationClient periodicClient) {
+    public String createQueryAndRegisterWithKafka(String sparql, PeriodicNotificationClient periodicClient) {
         PeriodicNotification notification = createPeriodicQuery(sparql);
         periodicClient.addNotification(notification);
         return notification.getId();
+    }
+    
+    private static double convertFromMillis(long duration, TimeUnit unit) {
+        Preconditions.checkArgument(duration > 0);
+
+        double convertedDuration = 0;
+        switch (unit) {
+        case DAYS:
+            convertedDuration = duration/(24 * 60 * 60 * 1000);
+            break;
+        case HOURS:
+            convertedDuration = duration/(60 * 60 * 1000);
+            break;
+        case MINUTES:
+            convertedDuration = duration/(60 * 1000);
+            break;
+        default:
+            throw new IllegalArgumentException("TimeUnit must be of type DAYS, HOURS, or MINUTES.");
+        }
+        return convertedDuration;
     }
     
 }

@@ -303,7 +303,7 @@ public class PeriodicQueryUtil {
         Preconditions.checkArgument(windowMillis % periodMillis == 0, "Period duration does not evenly divide window duration.");
 
         // create PeriodicMetadata.Builder
-        return new PeriodicQueryNode(windowMillis, periodMillis, unit, tempVar, arg);
+        return new PeriodicQueryNode(windowMillis, periodMillis, TimeUnit.MILLISECONDS, tempVar, arg);
     }
 
     private static TimeUnit getTimeUnit(ValueConstant val) {

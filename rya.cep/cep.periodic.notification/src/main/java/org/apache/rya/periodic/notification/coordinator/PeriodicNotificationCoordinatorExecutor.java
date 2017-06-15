@@ -46,8 +46,10 @@ public class PeriodicNotificationCoordinatorExecutor implements NotificationCoor
 
     @Override
     public void start() {
-        producerThreadPool = Executors.newScheduledThreadPool(numThreads);
-        running = true;
+        if (!running) {
+            producerThreadPool = Executors.newScheduledThreadPool(numThreads);
+            running = true;
+        }
     }
 
     @Override
@@ -73,8 +75,8 @@ public class PeriodicNotificationCoordinatorExecutor implements NotificationCoor
     private void addNotification(Notification notification) {
         Preconditions.checkArgument(notification instanceof PeriodicNotification);
         PeriodicNotification notify = (PeriodicNotification) notification;
-        ScheduledFuture<?> future = producerThreadPool.scheduleAtFixedRate(new NotificationProducer(notify),
-                notify.getInitialDelay(), notify.getPeriod(), notify.getTimeUnit());
+        ScheduledFuture<?> future = producerThreadPool.scheduleAtFixedRate(new NotificationProducer(notify), notify.getInitialDelay(),
+                notify.getPeriod(), notify.getTimeUnit());
         serviceMap.put(notify.getId(), future);
     }
 

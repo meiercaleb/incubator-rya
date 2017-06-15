@@ -42,8 +42,8 @@ public abstract class AbstractBatchBindingSetUpdater implements BatchBindingSetU
      * to clean up old batch tasks.
      */
     @Override
-    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) throws Exception {
-        tx.delete(Bytes.of(nodeId), FluoQueryColumns.BATCH_COLUMN);
+    public void processBatch(TransactionBase tx, Bytes row, BatchInformation batch) throws Exception {
+        tx.delete(row, FluoQueryColumns.BATCH_COLUMN);
     }
 
 

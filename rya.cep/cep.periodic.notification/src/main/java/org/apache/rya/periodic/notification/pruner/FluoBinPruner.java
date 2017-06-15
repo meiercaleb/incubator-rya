@@ -10,6 +10,7 @@ import org.apache.rya.cep.periodic.api.BinPruner;
 import org.apache.rya.cep.periodic.api.NodeBin;
 import org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants;
 import org.apache.rya.indexing.pcj.fluo.app.NodeType;
+import org.apache.rya.indexing.pcj.fluo.app.batch.BatchInformationDAO;
 import org.apache.rya.indexing.pcj.fluo.app.batch.SpanBatchDeleteInformation;
 import org.apache.rya.indexing.pcj.fluo.app.batch.serializer.BatchInformationSerializer;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
@@ -48,8 +49,7 @@ public class FluoBinPruner implements BinPruner {
             String batchInfoSpanPrefix = id + IncrementalUpdateConstants.NODEID_BS_DELIM + bin;
             SpanBatchDeleteInformation batchInfo = SpanBatchDeleteInformation.builder().setColumn(batchInfoColumn)
                     .setSpan(Span.prefix(Bytes.of(batchInfoSpanPrefix))).build();
-            byte[] batchBytes = BatchInformationSerializer.toBytes(batchInfo);
-            tx.set(Bytes.of(id), FluoQueryColumns.BATCH_COLUMN, Bytes.of(batchBytes));
+            BatchInformationDAO.addBatch(tx, id, batchInfo);
             tx.commit();
         }
     }

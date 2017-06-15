@@ -31,8 +31,6 @@ import org.apache.fluo.api.data.RowColumn;
 import org.apache.fluo.api.data.Span;
 import org.apache.log4j.Logger;
 import org.apache.rya.indexing.pcj.fluo.app.batch.BatchInformation.Task;
-import org.apache.rya.indexing.pcj.fluo.app.batch.serializer.BatchInformationSerializer;
-import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 
 import com.google.common.base.Preconditions;
 
@@ -41,8 +39,8 @@ public class SpanBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
     private static final Logger log = Logger.getLogger(SpanBatchBindingSetUpdater.class);
 
     @Override
-    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) throws Exception {
-        super.processBatch(tx, nodeId, batch);
+    public void processBatch(TransactionBase tx, Bytes row, BatchInformation batch) throws Exception {
+        super.processBatch(tx, row, batch);
         Preconditions.checkArgument(batch instanceof SpanBatchDeleteInformation);
         SpanBatchDeleteInformation spanBatch = (SpanBatchDeleteInformation) batch;
         Task task = spanBatch.getTask();
@@ -71,7 +69,7 @@ public class SpanBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
             log.trace("Batch size met.  There are remaining results that need to be deleted.  Creating a new batch of size: "
                     + spanBatch.getBatchSize() + " with Span: " + newSpan + " and Column: " + column);
             spanBatch.setSpan(newSpan);
-            tx.set(Bytes.of(nodeId), FluoQueryColumns.BATCH_COLUMN, Bytes.of(BatchInformationSerializer.toBytes(spanBatch)));
+            BatchInformationDAO.addBatch(tx, BatchRowKeyUtil.getNodeId(row), spanBatch);
         }
     }
 

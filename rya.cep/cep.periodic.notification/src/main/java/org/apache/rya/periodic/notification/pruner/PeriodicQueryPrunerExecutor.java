@@ -26,7 +26,8 @@ public class PeriodicQueryPrunerExecutor implements LifeCycle {
     private List<PeriodicQueryPruner> pruners;
     private boolean running = false;
 
-    public PeriodicQueryPrunerExecutor(PeriodicQueryResultStorage periodicStorage, FluoClient client, int numThreads, BlockingQueue<NodeBin> bins) {
+    public PeriodicQueryPrunerExecutor(PeriodicQueryResultStorage periodicStorage, FluoClient client, int numThreads,
+            BlockingQueue<NodeBin> bins) {
         Preconditions.checkArgument(numThreads > 0);
         this.periodicStorage = periodicStorage;
         this.numThreads = numThreads;
@@ -38,20 +39,22 @@ public class PeriodicQueryPrunerExecutor implements LifeCycle {
 
     @Override
     public void start() {
-        AccumuloBinPruner accPruner = new AccumuloBinPruner(periodicStorage);
-        FluoBinPruner fluoPruner = new FluoBinPruner(client);
-        
-        for (int threadNumber = 0; threadNumber < numThreads; threadNumber++) {
-            PeriodicQueryPruner pruner = new PeriodicQueryPruner(fluoPruner, accPruner, client, bins, threadNumber);
-            pruners.add(pruner);
-            executor.submit(pruner);
+        if (!running) {
+            AccumuloBinPruner accPruner = new AccumuloBinPruner(periodicStorage);
+            FluoBinPruner fluoPruner = new FluoBinPruner(client);
+
+            for (int threadNumber = 0; threadNumber < numThreads; threadNumber++) {
+                PeriodicQueryPruner pruner = new PeriodicQueryPruner(fluoPruner, accPruner, client, bins, threadNumber);
+                pruners.add(pruner);
+                executor.submit(pruner);
+            }
+            running = true;
         }
-        running = true;
     }
 
     @Override
     public void stop() {
-        if(pruners != null && pruners.size() > 0) {
+        if (pruners != null && pruners.size() > 0) {
             pruners.forEach(x -> x.shutdown());
         }
         if (executor != null) {
@@ -66,7 +69,6 @@ public class PeriodicQueryPrunerExecutor implements LifeCycle {
             log.info("Interrupted during shutdown, exiting uncleanly");
         }
     }
-
 
     @Override
     public boolean currentlyRunning() {

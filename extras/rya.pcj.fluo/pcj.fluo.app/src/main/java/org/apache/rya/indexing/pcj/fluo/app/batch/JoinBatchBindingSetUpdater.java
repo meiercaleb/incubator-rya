@@ -18,7 +18,6 @@ import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.LeftOuterJoin;
 import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.NaturalJoin;
 import org.apache.rya.indexing.pcj.fluo.app.JoinResultUpdater.Side;
 import org.apache.rya.indexing.pcj.fluo.app.batch.BatchInformation.Task;
-import org.apache.rya.indexing.pcj.fluo.app.batch.serializer.BatchInformationSerializer;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryColumns;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryMetadataDAO;
 import org.apache.rya.indexing.pcj.fluo.app.query.JoinMetadata;
@@ -52,8 +51,9 @@ public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
      * @throws Exception 
      */
     @Override
-    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) throws Exception {
-        super.processBatch(tx, nodeId, batch);
+    public void processBatch(TransactionBase tx, Bytes row, BatchInformation batch) throws Exception {
+        super.processBatch(tx, row, batch);
+        String nodeId = BatchRowKeyUtil.getNodeId(row);
         Preconditions.checkArgument(batch instanceof JoinBatchInformation);
         JoinBatchInformation joinBatch = (JoinBatchInformation) batch;
         Task task = joinBatch.getTask();
@@ -91,9 +91,9 @@ public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
             //create BindingSet value
             Bytes bsBytes = BS_SERDE.serialize(newJoinResult);
             //make rowId
-            RowKeyUtil.makeRowKey(nodeId, joinVarOrder, newJoinResult);
+            Bytes rowKey = RowKeyUtil.makeRowKey(nodeId, joinVarOrder, newJoinResult);
             final Column col = FluoQueryColumns.JOIN_BINDING_SET;
-            processTask(tx, task, bsBytes.toString(), col, bsBytes.toString());
+            processTask(tx, task, rowKey, col, bsBytes);
         }
 
         // if batch limit met, there are additional entries to process
@@ -101,18 +101,18 @@ public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
         if (rowCol.isPresent()) {
             Span newSpan = getNewSpan(rowCol.get(), joinBatch.getSpan());
             joinBatch.setSpan(newSpan);
-            tx.set(Bytes.of(nodeId), FluoQueryColumns.BATCH_COLUMN, Bytes.of(BatchInformationSerializer.toBytes(joinBatch)));
+            BatchInformationDAO.addBatch(tx, nodeId, joinBatch);
         }
 
     }
 
-    private void processTask(TransactionBase tx, Task task, String row, Column column, String value) {
+    private void processTask(TransactionBase tx, Task task, Bytes row, Column column, Bytes value) {
         switch (task) {
         case Add:
             tx.set(row, column, value);
             break;
         case Delete:
-            tx.delete(Bytes.of(row), column);
+            tx.delete(row, column);
             break;
         case Update:
             log.trace("The Task Update is not supported for JoinBatchBindingSetUpdater.  Batch will not be processed.");
@@ -154,7 +154,7 @@ public class JoinBatchBindingSetUpdater extends AbstractBatchBindingSetUpdater {
                     batchLimitMet = true;
                     break;
                 }
-                bsSet.add(BS_SERDE.deserialize(Bytes.of(iter.next().getsValue())));
+                bsSet.add(BS_SERDE.deserialize(iter.next().getValue()));
             }
         }
 

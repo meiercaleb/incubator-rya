@@ -10,7 +10,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.rya.indexing.pcj.storage.PeriodicQueryResultStorage;
 import org.apache.rya.kafka.base.KafkaITBase;
 import org.apache.rya.periodic.notification.serialization.BindingSetSerDe;
@@ -31,7 +34,7 @@ public class PeriodicNotificationExporterIT extends KafkaITBase {
         BlockingQueue<BindingSetRecord> records = new LinkedBlockingQueue<>();
         Properties props = createKafkaConfig();
         
-        KafkaExporterExecutor exporter = new KafkaExporterExecutor(props, 1, records);
+        KafkaExporterExecutor exporter = new KafkaExporterExecutor(new KafkaProducer<String, BindingSet>(props), 1, records);
         exporter.start();
         
         QueryBindingSet bs1 = new QueryBindingSet();
@@ -69,6 +72,8 @@ public class PeriodicNotificationExporterIT extends KafkaITBase {
         props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "group0");
         props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, "consumer0");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, BindingSetSerDe.class.getName());
         props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, BindingSetSerDe.class.getName());
 

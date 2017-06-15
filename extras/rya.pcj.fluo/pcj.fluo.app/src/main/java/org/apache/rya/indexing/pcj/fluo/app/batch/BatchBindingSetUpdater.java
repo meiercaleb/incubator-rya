@@ -18,6 +18,7 @@ package org.apache.rya.indexing.pcj.fluo.app.batch;
  * under the License.
  */
 import org.apache.fluo.api.client.TransactionBase;
+import org.apache.fluo.api.data.Bytes;
 
 /**
  * Interface for applying batch updates to the Fluo table based on the provided {@link BatchInformation}.
@@ -27,6 +28,6 @@ import org.apache.fluo.api.client.TransactionBase;
  */
 public interface BatchBindingSetUpdater {
 
-    public void processBatch(TransactionBase tx, String nodeId, BatchInformation batch) throws Exception;
+    public void processBatch(TransactionBase tx, Bytes row, BatchInformation batch) throws Exception;
     
 }

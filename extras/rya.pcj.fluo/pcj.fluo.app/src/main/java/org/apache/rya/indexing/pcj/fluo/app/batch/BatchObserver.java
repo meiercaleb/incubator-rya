@@ -44,9 +44,9 @@ public class BatchObserver extends AbstractObserver {
 
     @Override
     public void process(TransactionBase tx, Bytes row, Column col) throws Exception {
-        Optional<BatchInformation> batchInfo = parseBatchInformation(tx, row, col);
+        Optional<BatchInformation> batchInfo = BatchInformationDAO.getBatchInformation(tx, row);
         if(batchInfo.isPresent()) {
-            batchInfo.get().getBatchUpdater().processBatch(tx, row.toString(), batchInfo.get());
+            batchInfo.get().getBatchUpdater().processBatch(tx, row, batchInfo.get());
         }
     }
 
@@ -55,8 +55,4 @@ public class BatchObserver extends AbstractObserver {
         return new ObservedColumn(FluoQueryColumns.BATCH_COLUMN, NotificationType.STRONG);
     }
 
-    private Optional<BatchInformation> parseBatchInformation(final TransactionBase tx, Bytes row, Column col) {
-        Bytes value = tx.get(row, col);
-        return BatchInformationSerializer.fromBytes(value.toArray());
-    }
 }

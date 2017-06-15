@@ -14,7 +14,6 @@ import javax.xml.datatype.DatatypeFactory;
 
 import org.apache.fluo.api.client.FluoClient;
 import org.apache.fluo.api.client.Snapshot;
-import org.apache.fluo.api.client.SnapshotBase;
 import org.apache.fluo.api.client.scanner.ColumnScanner;
 import org.apache.fluo.api.client.scanner.RowScanner;
 import org.apache.fluo.api.data.Bytes;
@@ -22,7 +21,6 @@ import org.apache.fluo.api.data.ColumnValue;
 import org.apache.fluo.api.data.Span;
 import org.apache.fluo.core.client.FluoClientImpl;
 import org.apache.fluo.recipes.test.FluoITHelper;
-import org.apache.lucene.analysis.shingle.ShingleMatrixFilter.Matrix.Column.Row;
 import org.apache.rya.api.resolver.RdfToRyaConversions;
 import org.apache.rya.cep.periodic.api.CreatePeriodicQuery;
 import org.apache.rya.cep.periodic.api.NodeBin;
@@ -71,7 +69,6 @@ public class PeriodicNotificationBinPrunerIT extends RyaExportITBase {
             PeriodicQueryResultStorage periodicStorage = new AccumuloPeriodicQueryResultStorage(super.getAccumuloConnector(), RYA_INSTANCE_NAME);
             CreatePeriodicQuery createPeriodicQuery = new CreatePeriodicQuery(fluo, periodicStorage);
             PeriodicNotification notification = createPeriodicQuery.createPeriodicQuery(sparql);
-            periodicStorage.createPeriodicQuery(notification.getId(), sparql);
             String queryId = notification.getId();
             
             //create statements to ingest into Fluo
@@ -205,7 +202,7 @@ public class PeriodicNotificationBinPrunerIT extends RyaExportITBase {
             bins.add(new NodeBin(queryId, bin3));
             bins.add(new NodeBin(queryId, bin4));
             
-            Thread.sleep(12000);
+            Thread.sleep(10000);
             
             compareResults(periodicStorage, queryId, bin1, new HashSet<>());
             compareResults(periodicStorage, queryId, bin2, new HashSet<>());

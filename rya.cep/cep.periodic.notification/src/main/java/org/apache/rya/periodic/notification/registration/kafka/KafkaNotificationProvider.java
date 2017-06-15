@@ -8,6 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.rya.cep.periodic.api.LifeCycle;
 import org.apache.rya.cep.periodic.api.NotificationCoordinatorExecutor;
 import org.apache.rya.periodic.notification.notification.CommandNotification;
@@ -22,20 +23,25 @@ public class KafkaNotificationProvider implements LifeCycle {
     private Properties props;
     private int numThreads;
     private boolean running = false;
+    Deserializer<String> keyDe;
+    Deserializer<CommandNotification> valDe;
     List<PeriodicNotificationConsumer> consumers;
 
-    public KafkaNotificationProvider(String topic, Properties props, NotificationCoordinatorExecutor coord, int numThreads) {
+    public KafkaNotificationProvider(String topic, Deserializer<String> keyDe, Deserializer<CommandNotification> valDe, Properties props,
+            NotificationCoordinatorExecutor coord, int numThreads) {
         this.coord = coord;
         this.numThreads = numThreads;
         this.topic = topic;
         this.props = props;
         this.consumers = new ArrayList<>();
+        this.keyDe = keyDe;
+        this.valDe = valDe;
     }
 
     @Override
     public void stop() {
         if (consumers != null && consumers.size() > 0) {
-            for(PeriodicNotificationConsumer consumer: consumers) {
+            for (PeriodicNotificationConsumer consumer : consumers) {
                 consumer.shutdown();
             }
         }
@@ -53,23 +59,25 @@ public class KafkaNotificationProvider implements LifeCycle {
     }
 
     public void start() {
-        if(!coord.currentlyRunning()) {
-            coord.start();
-        }
-        // now launch all the threads
-        executor = Executors.newFixedThreadPool(numThreads);
+        if (!running) {
+            if (!coord.currentlyRunning()) {
+                coord.start();
+            }
+            // now launch all the threads
+            executor = Executors.newFixedThreadPool(numThreads);
 
-        // now create consumers to consume the messages
-        int threadNumber = 0;
-        for (int i = 0; i < numThreads; i++) {
-            LOG.info("Creating consumer:" + threadNumber);
-            KafkaConsumer<String, CommandNotification> consumer = new KafkaConsumer<>(props);
-            PeriodicNotificationConsumer periodicConsumer = new PeriodicNotificationConsumer(topic, consumer, threadNumber, coord);
-            consumers.add(periodicConsumer);
-            executor.submit(periodicConsumer);
-            threadNumber++;
+            // now create consumers to consume the messages
+            int threadNumber = 0;
+            for (int i = 0; i < numThreads; i++) {
+                LOG.info("Creating consumer:" + threadNumber);
+                KafkaConsumer<String, CommandNotification> consumer = new KafkaConsumer<String, CommandNotification>(props, keyDe, valDe);
+                PeriodicNotificationConsumer periodicConsumer = new PeriodicNotificationConsumer(topic, consumer, threadNumber, coord);
+                consumers.add(periodicConsumer);
+                executor.submit(periodicConsumer);
+                threadNumber++;
+            }
+            running = true;
         }
-        running = true;
     }
 
     @Override

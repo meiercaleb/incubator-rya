@@ -1,5 +1,8 @@
 package org.apache.rya.periodic.notification.application;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -61,6 +64,7 @@ public class PeriodicNotificationApplicationIT extends RyaExportITBase {
     private KafkaNotificationRegistrationClient registrar;
     private KafkaProducer<String, CommandNotification> producer;
     private Properties props;
+    private Properties kafkaProps;
     PeriodicNotificationApplicationConfiguration conf;
     
     private static final String ZKHOST = "127.0.0.1";
@@ -76,8 +80,9 @@ public class PeriodicNotificationApplicationIT extends RyaExportITBase {
         setUpKafka();
         props = getProps();
         conf = new PeriodicNotificationApplicationConfiguration(props);
+        kafkaProps = getKafkaProperties(conf);
         app = PeriodicNotificationApplicationFactory.getPeriodicApplication(props);
-        producer = new KafkaProducer<>(props, new StringSerializer(), new CommandNotificationSerializer());
+        producer = new KafkaProducer<>(kafkaProps, new StringSerializer(), new CommandNotificationSerializer());
         registrar = new KafkaNotificationRegistrationClient(conf.getNotificationTopic(), producer);
     }
     
@@ -119,7 +124,7 @@ public class PeriodicNotificationApplicationIT extends RyaExportITBase {
             addData();
             app.start();
 //            
-            try (KafkaConsumer<String, BindingSet> consumer = new KafkaConsumer<>(props, new StringDeserializer(), new BindingSetSerDe())) {
+            try (KafkaConsumer<String, BindingSet> consumer = new KafkaConsumer<>(kafkaProps, new StringDeserializer(), new BindingSetSerDe())) {
                 consumer.subscribe(Arrays.asList(id));
                 long end = System.currentTimeMillis() + 61000;
                 while (System.currentTimeMillis() < end) {
@@ -189,21 +194,31 @@ public class PeriodicNotificationApplicationIT extends RyaExportITBase {
 
     }
 
-    private Properties getProps() {
+    private Properties getKafkaProperties(PeriodicNotificationApplicationConfiguration conf) { 
+        Properties kafkaProps = new Properties();
+        kafkaProps.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, conf.getBootStrapServers());
+        kafkaProps.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, conf.getNotificationClientId());
+        kafkaProps.setProperty(ConsumerConfig.GROUP_ID_CONFIG, conf.getNotificationGroupId());
+        kafkaProps.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        return kafkaProps;
+    }
+
+    
+    private Properties getProps() throws IOException {
+        
         Properties props = new Properties();
+        try(InputStream in = new FileInputStream("src/test/resources/notification.properties")) {
+            props.load(in);
+        } 
+        
         FluoConfiguration fluoConf = getFluoConfiguration();
         props.setProperty("accumulo.user", ACCUMULO_USER);
         props.setProperty("accumulo.password", ACCUMULO_PASSWORD);
         props.setProperty("accumulo.instance", getMiniAccumuloCluster().getInstanceName());
-        props.setProperty("accumulo.auths", "");
         props.setProperty("accumulo.zookeepers", getMiniAccumuloCluster().getZooKeepers());
         props.setProperty("accumulo.rya.prefix", RYA_INSTANCE_NAME);
         props.setProperty(PeriodicNotificationApplicationConfiguration.FLUO_APP_NAME, fluoConf.getApplicationName());
         props.setProperty(PeriodicNotificationApplicationConfiguration.FLUO_TABLE_NAME, fluoConf.getAccumuloTable());
-        props.setProperty(PeriodicNotificationApplicationConfiguration.KAFKA_BOOTSTRAP_SERVERS, BROKERHOST + ":" + BROKERPORT);
-        props.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, "consumer0");
-        props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "group0");
-        props.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         return props;
     }
 

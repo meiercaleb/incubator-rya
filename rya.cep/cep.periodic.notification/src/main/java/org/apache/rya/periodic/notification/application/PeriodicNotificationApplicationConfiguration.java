@@ -2,31 +2,54 @@ package org.apache.rya.periodic.notification.application;
 
 import java.util.Properties;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.rya.accumulo.AccumuloRdfConfiguration;
-import org.apache.rya.indexing.accumulo.ConfigUtils;
 
 import jline.internal.Preconditions;
 
 public class PeriodicNotificationApplicationConfiguration extends AccumuloRdfConfiguration {
 
-    public static String FLUO_APP_NAME = ConfigUtils.FLUO_APP_NAME;
+    public static String FLUO_APP_NAME = "fluo.app.name";
     public static String FLUO_TABLE_NAME = "fluo.table.name";
-    public static String KAFKA_BOOTSTRAP_SERVERS = ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
-    public static String NOTIFICATION_TOPIC = "notification.topic";
-    public static String NOTIFICATION_GROUP_ID = "notification.group.id";
-    public static String NOTIFICATION_CLIENT_ID = "notification.client.id";
-    public static String EXPORT_TOPIC = "export.topic";
-    public static String EXPORT_GROUP_ID = "export.group.id";
-    public static String EXPORT_CLIENT_ID = "export.client.id";
-    public static String COORDINATOR_THREADS = "coordinator.threads";
-    public static String PRODUCER_THREADS = "producer.threads";
-    public static String EXPORTER_THREADS = "exporter.threads";
-    public static String PROCESSOR_THREADS = "processor.threads";
-    public static String PRUNER_THREADS = "pruner.threads";
+    public static String KAFKA_BOOTSTRAP_SERVERS = "kafka.bootstrap.servers";
+    public static String NOTIFICATION_TOPIC = "kafka.notification.topic";
+    public static String NOTIFICATION_GROUP_ID = "kafka.notification.group.id";
+    public static String NOTIFICATION_CLIENT_ID = "kafka.notification.client.id";
+    public static String COORDINATOR_THREADS = "cep.coordinator.threads";
+    public static String PRODUCER_THREADS = "cep.producer.threads";
+    public static String EXPORTER_THREADS = "cep.exporter.threads";
+    public static String PROCESSOR_THREADS = "cep.processor.threads";
+    public static String PRUNER_THREADS = "cep.pruner.threads";
     
     public PeriodicNotificationApplicationConfiguration() {}
     
+    /**
+     * Creates an PeriodicNotificationApplicationConfiguration object from a Properties file.  This method assumes
+     * that all values in the Properties file are Strings and that the Properties file uses the keys below.
+     * See rya.cep/cep.integration.tests/src/test/resources/properties/notification.properties for an example.
+     * <br>
+     * <ul>
+     * <li>"accumulo.auths" - String of Accumulo authorizations. Default is empty String.
+     * <li>"accumulo.instance" - Accumulo instance name (required)
+     * <li>"accumulo.user" - Accumulo user (required)
+     * <li>"accumulo.password" - Accumulo password (required)
+     * <li>"accumulo.rya.prefix" - Prefix for Accumulo backed Rya instance.  Default is "rya_"
+     * <li>"accumulo.zookeepers" - Zookeepers for underlying Accumulo instance (required)
+     * <li>"fluo.app.name" - Name of Fluo Application (required)
+     * <li>"fluo.table.name" - Name of Fluo Table (required)
+     * <li>"kafka.bootstrap.servers" - Kafka Bootstrap servers for Producers and Consumers (required)
+     * <li>"kafka.notification.topic" - Topic to which new Periodic Notifications are published. Default is "notifications".
+     * <li>"kafka.notification.client.id" - Client Id for notification topic.  Default is "consumer0"
+     * <li>"kafka.notification.group.id" - Group Id for notification topic.  Default is "group0"
+     * <li>"cep.coordinator.threads" - Number of threads used by coordinator. Default is 1.
+     * <li>"cep.producer.threads" - Number of threads used by producer.  Default is 1.
+     * <li>"cep.exporter.threads" - Number of threads used by exporter.  Default is 1.
+     * <li>"cep.processor.threads" - Number of threads used by processor.  Default is 1.
+     * <li>"cep.pruner.threads" - Number of threads used by pruner.  Default is 1.
+     * </ul>
+     * <br>
+     * @param props - Properties file containing Accumulo specific configuration parameters
+     * @return AccumumuloRdfConfiguration with properties set
+     */
     public PeriodicNotificationApplicationConfiguration(Properties props) {
        super(fromProperties(props));
        setFluoAppName(props.getProperty(FLUO_APP_NAME));
@@ -35,9 +58,6 @@ public class PeriodicNotificationApplicationConfiguration extends AccumuloRdfCon
        setNotificationClientId(props.getProperty(NOTIFICATION_CLIENT_ID, "consumer0"));
        setNotificationTopic(props.getProperty(NOTIFICATION_TOPIC, "notifications"));
        setNotificationGroupId(props.getProperty(NOTIFICATION_GROUP_ID, "group0"));
-       setExportTopic(props.getProperty(EXPORT_TOPIC, "export"));
-       setExportClientId(props.getProperty(EXPORT_CLIENT_ID, "consumer0"));
-       setExportGroupId(props.getProperty(EXPORT_GROUP_ID, "group0"));
        setProducerThreads(Integer.parseInt(props.getProperty(PRODUCER_THREADS, "1")));
        setProcessorThreads(Integer.parseInt(props.getProperty(PROCESSOR_THREADS, "1")));
        setExporterThreads(Integer.parseInt(props.getProperty(EXPORTER_THREADS, "1")));
@@ -67,18 +87,6 @@ public class PeriodicNotificationApplicationConfiguration extends AccumuloRdfCon
     
     public void setNotificationClientId(String notificationClientId) {
         set(NOTIFICATION_GROUP_ID, Preconditions.checkNotNull(notificationClientId));
-    }
-    
-    public void setExportTopic(String exportTopic) {
-        set(EXPORT_TOPIC, Preconditions.checkNotNull(exportTopic));
-    }
-    
-    public void setExportGroupId(String exportGroupId) {
-        set(EXPORT_GROUP_ID, Preconditions.checkNotNull(exportGroupId));
-    }
-    
-    public void setExportClientId(String exportClientId) {
-        set(EXPORT_GROUP_ID, Preconditions.checkNotNull(exportClientId));
     }
     
     public void setCoordinatorThreads(int threads) {
@@ -123,18 +131,6 @@ public class PeriodicNotificationApplicationConfiguration extends AccumuloRdfCon
     
     public String getNotificationClientId() {
         return get(NOTIFICATION_CLIENT_ID, "consumer0");
-    }
-    
-    public String getExportTopic() {
-        return get(EXPORT_TOPIC, "export");
-    }
-    
-    public String getExportGroupId() {
-        return get(EXPORT_GROUP_ID, "group0");
-    }
-    
-    public String getExportClientId() {
-        return get(EXPORT_CLIENT_ID, "consumer0");
     }
     
     public int getCoordinatorThreads() {

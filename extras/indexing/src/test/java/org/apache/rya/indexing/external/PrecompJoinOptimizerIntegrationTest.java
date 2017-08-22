@@ -387,7 +387,7 @@ public class PrecompJoinOptimizerIntegrationTest {
 		pcjConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(
 				crh);
 
-		Assert.assertEquals(6, crh.getCount());
+		Assert.assertEquals(2, crh.getCount());
 
 	}
 

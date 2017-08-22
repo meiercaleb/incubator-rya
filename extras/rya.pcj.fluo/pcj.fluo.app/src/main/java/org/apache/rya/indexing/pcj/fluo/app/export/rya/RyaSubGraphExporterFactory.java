@@ -19,9 +19,9 @@
 package org.apache.rya.indexing.pcj.fluo.app.export.rya;
 
 import org.apache.fluo.api.client.FluoClient;
+import org.apache.fluo.api.client.FluoFactory;
 import org.apache.fluo.api.config.FluoConfiguration;
 import org.apache.fluo.api.observer.Observer.Context;
-import org.apache.fluo.core.client.FluoClientImpl;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalResultExporter;
 import org.apache.rya.indexing.pcj.fluo.app.export.IncrementalResultExporterFactory;
 
@@ -44,7 +44,7 @@ public class RyaSubGraphExporterFactory implements IncrementalResultExporterFact
             try {
                 //Get FluoConfiguration from params
                 FluoConfiguration conf = params.getFluoConfiguration();
-                FluoClient fluo = new FluoClientImpl(conf);
+                FluoClient fluo = FluoFactory.newClient(conf);
                 
                 //Create exporter
                 RyaSubGraphExporter exporter = new RyaSubGraphExporter(fluo);

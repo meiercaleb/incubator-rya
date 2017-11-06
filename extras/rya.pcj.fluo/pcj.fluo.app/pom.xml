@@ -60,6 +60,14 @@
             <artifactId>fluo-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.fluo</groupId>
+            <artifactId>fluo-recipes-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.fluo</groupId>
+            <artifactId>fluo-recipes-accumulo</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.openrdf.sesame</groupId>
             <artifactId>sesame-queryrender</artifactId>
         </dependency>

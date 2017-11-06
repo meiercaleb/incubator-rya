@@ -75,6 +75,7 @@ public class FluoQueryMetadataCache extends FluoQueryMetadataDAO {
         return concurrencyLevel;
     }
 
+
     @Override
     public StatementPatternMetadata readStatementPatternMetadata(SnapshotBase tx, String nodeId) {
         Optional<NodeType> type = NodeType.fromNodeId(nodeId);
@@ -233,6 +234,11 @@ public class FluoQueryMetadataCache extends FluoQueryMetadataDAO {
         } catch (Exception e) {
             throw new RuntimeException("Unable to access Metadata Entry with rowId: " + rowId + " and column: " + column, e);
         }
+    }
+
+    public void clear() {
+        commonNodeMetadataCache.asMap().clear();
+        metadataCache.asMap().clear();
     }
 
     private String getKey(String row, Column column) {

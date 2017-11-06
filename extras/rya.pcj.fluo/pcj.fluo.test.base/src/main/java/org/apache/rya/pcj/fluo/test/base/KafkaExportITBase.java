@@ -64,11 +64,14 @@ import org.apache.rya.indexing.pcj.fluo.app.observers.ProjectionObserver;
 import org.apache.rya.indexing.pcj.fluo.app.observers.QueryResultObserver;
 import org.apache.rya.indexing.pcj.fluo.app.observers.StatementPatternObserver;
 import org.apache.rya.indexing.pcj.fluo.app.observers.TripleObserver;
+import org.apache.rya.indexing.pcj.fluo.app.query.MetadataCacheSupplier;
+import org.apache.rya.indexing.pcj.fluo.app.query.StatementPatternIdCacheSupplier;
 import org.apache.rya.indexing.pcj.storage.accumulo.VisibilityBindingSet;
 import org.apache.rya.rdftriplestore.RyaSailRepository;
 import org.apache.rya.sail.config.RyaSailFactory;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 import org.openrdf.model.Statement;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.Sail;
@@ -185,6 +188,12 @@ public class KafkaExportITBase extends AccumuloExportITBase {
         }
     }
 
+    @After
+    public void clearCaches() {
+        StatementPatternIdCacheSupplier.clear();
+        MetadataCacheSupplier.clear();
+    }
+
     private void installRyaInstance() throws Exception {
         final MiniAccumuloCluster cluster = super.getMiniAccumuloCluster();
         final String instanceName = cluster.getInstanceName();
@@ -261,7 +270,7 @@ public class KafkaExportITBase extends AccumuloExportITBase {
      * If this test fails then its a testing environment issue, not with Rya.
      * Source: https://github.com/asmaier/mini-kafka
      */
-//    @Test
+    @Test
     public void embeddedKafkaTest() throws Exception {
         // create topic
         final String topic = "testTopic";

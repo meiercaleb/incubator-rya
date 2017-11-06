@@ -79,14 +79,14 @@ public class CreateDeleteIT extends RyaExportITBase {
         try(FluoClient fluoClient = FluoFactory.newClient(super.getFluoConfiguration())) {
             // Ensure the data was loaded.
             final List<Bytes> rows = getFluoTableEntries(fluoClient);
-            assertEquals(18, rows.size());
+            assertEquals(19, rows.size());
 
             // Delete the PCJ from the Fluo application.
             new DeleteFluoPcj(1).deletePcj(fluoClient, pcjId);
 
             // Ensure all data related to the query has been removed.
             final List<Bytes> empty_rows = getFluoTableEntries(fluoClient);
-            assertEquals(0, empty_rows.size());
+            assertEquals(1, empty_rows.size());
         }
     }
 
@@ -111,17 +111,17 @@ public class CreateDeleteIT extends RyaExportITBase {
         try(FluoClient fluoClient = FluoFactory.newClient(super.getFluoConfiguration())) {
             // Ensure the data was loaded.
             final List<Bytes> rows = getFluoTableEntries(fluoClient);
-            assertEquals(10, rows.size());
+            assertEquals(11, rows.size());
 
             // Delete the PCJ from the Fluo application.
             new DeleteFluoPcj(1).deletePcj(fluoClient, pcjId);
 
             // Ensure all data related to the query has been removed.
             final List<Bytes> empty_rows = getFluoTableEntries(fluoClient);
-            assertEquals(0, empty_rows.size());
+            assertEquals(1, empty_rows.size());
         }
     }
-    
+
 
     private String loadData(final String sparql, final Collection<Statement> statements) throws Exception {
         requireNonNull(sparql);

@@ -21,8 +21,10 @@ package org.apache.rya.indexing.pcj.fluo.api;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.fluo.api.client.FluoClient;
 import org.apache.fluo.api.client.Transaction;
@@ -34,7 +36,9 @@ import org.apache.fluo.api.data.Span;
 import org.apache.rya.indexing.pcj.fluo.app.NodeType;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQuery;
 import org.apache.rya.indexing.pcj.fluo.app.query.FluoQueryMetadataDAO;
+import org.apache.rya.indexing.pcj.fluo.app.query.StatementPatternIdManager;
 import org.apache.rya.indexing.pcj.fluo.app.query.UnsupportedQueryException;
+import org.apache.rya.indexing.pcj.fluo.app.util.BindingHashShardingFunction;
 import org.apache.rya.indexing.pcj.fluo.app.util.FluoQueryUtils;
 import org.openrdf.query.BindingSet;
 
@@ -79,7 +83,7 @@ public class DeleteFluoPcj {
      *            Index. (not null)
      * @param pcjId - The PCJ ID for the query that will removed from the Fluo
      *            application. (not null)
-     * @throws UnsupportedQueryException 
+     * @throws UnsupportedQueryException
      */
     public void deletePcj(final FluoClient client, final String pcjId) throws UnsupportedQueryException {
         requireNonNull(client);
@@ -104,7 +108,7 @@ public class DeleteFluoPcj {
      * @param tx - Transaction of a given Fluo table. (not null)
      * @param pcjId - Id of query. (not null)
      * @return list of Node IDs associated with the query {@code pcjId}.
-     * @throws UnsupportedQueryException 
+     * @throws UnsupportedQueryException
      */
     private List<String> getNodeIds(Transaction tx, String pcjId) throws UnsupportedQueryException {
         requireNonNull(tx);
@@ -131,10 +135,15 @@ public class DeleteFluoPcj {
         requireNonNull(pcjId);
 
         try (final Transaction typeTx = tx) {
+            Set<String> spNodeIds = new HashSet<>();
             for (final String nodeId : nodeIds) {
                 final NodeType type = NodeType.fromNodeId(nodeId).get();
+                if(type == NodeType.STATEMENT_PATTERN) {
+                    spNodeIds.add(nodeId);
+                }
                 deleteMetadataColumns(typeTx, nodeId, type.getMetaDataColumns());
             }
+            StatementPatternIdManager.removeStatementPatternIds(typeTx, spNodeIds);
             typeTx.commit();
         }
     }
@@ -169,23 +178,27 @@ public class DeleteFluoPcj {
 
         final NodeType type = NodeType.fromNodeId(nodeId).get();
         Transaction tx = client.newTransaction();
-        while (deleteDataBatch(tx, getIterator(tx, nodeId, type.getResultColumn()), type.getResultColumn())) {
+        Bytes prefixBytes = Bytes.of(type.getNodeTypePrefix());
+        Bytes nodeIdBytes = Bytes.of(nodeId);
+        while (deleteDataBatch(tx, nodeIdBytes, prefixBytes, getIterator(tx, type.getNodeTypePrefix(), type.getResultColumn()),
+                type.getResultColumn())) {
             tx = client.newTransaction();
         }
     }
 
-    private CellScanner getIterator(final Transaction tx, final String nodeId, final Column column) {
+    private CellScanner getIterator(final Transaction tx, final String nodePrefix, final Column column) {
         requireNonNull(tx);
-        requireNonNull(nodeId);
+        requireNonNull(nodePrefix);
         requireNonNull(column);
 
-        return tx.scanner().fetch(column).over(Span.prefix(nodeId)).build();
+        return tx.scanner().fetch(column).over(Span.prefix(nodePrefix)).build();
     }
 
-    private boolean deleteDataBatch(final Transaction tx, final CellScanner scanner, final Column column) {
+    private boolean deleteDataBatch(final Transaction tx, Bytes nodeIdBytes, Bytes prefixBytes, final CellScanner scanner, final Column column) {
         requireNonNull(tx);
         requireNonNull(scanner);
         requireNonNull(column);
+
 
         try (Transaction ntx = tx) {
             int count = 0;
@@ -193,7 +206,9 @@ public class DeleteFluoPcj {
             while (iter.hasNext() && count < batchSize) {
                 final Bytes row = iter.next().getRow();
                 count++;
-                tx.delete(row, column);
+                if (BindingHashShardingFunction.removeHash(prefixBytes, row).equals(nodeIdBytes)) {
+                    tx.delete(row, column);
+                }
             }
 
             final boolean hasNext = iter.hasNext();

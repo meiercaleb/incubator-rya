@@ -21,15 +21,16 @@ package org.apache.rya.indexing.pcj.fluo.app;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.rya.indexing.pcj.fluo.app.IncrementalUpdateConstants.NODEID_BS_DELIM;
 
+import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.fluo.api.data.Bytes;
+import org.apache.rya.indexing.pcj.fluo.app.util.BindingHashShardingFunction;
 
 import edu.umd.cs.findbugs.annotations.DefaultAnnotation;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.Immutable;
 
 /**
- * The values of an Accumulo Row ID for a row that stores a Binding set for
- * a specific Node ID of a query.
+ * The values of an Accumulo Row ID for a row that stores a Binding set for a specific Node ID of a query.
  */
 @Immutable
 @DefaultAnnotation(NonNull.class)
@@ -76,5 +77,32 @@ public class BindingSetRow {
         final String nodeId = rowArray[0];
         final String bindingSetString = rowArray.length == 2 ? rowArray[1] : "";
         return new BindingSetRow(nodeId, bindingSetString);
+    }
+
+    public static BindingSetRow makeFromShardedRow(Bytes prefixBytes, Bytes row) {
+        return make(BindingHashShardingFunction.removeHash(prefixBytes, row));
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder
+        .append("NodeId: " + nodeId).append("\n")
+        .append("BindingSet String: " + bindingSetString);
+        return builder.toString();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if(other == null) { return false;}
+        if(this == other) { return true;}
+
+        if (other instanceof BindingSetRow) {
+            BindingSetRow row = (BindingSetRow) other;
+            return new EqualsBuilder().append(this.nodeId, row.nodeId).append(this.bindingSetString, row.bindingSetString)
+                    .isEquals();
+        }
+
+        return false;
     }
 }
